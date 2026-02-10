@@ -1,0 +1,86 @@
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --surface-hover: #f5f5f7;
+  --text: #1d1d1f;
+  --text2: #6e6e73;
+  --text3: #aeaeb2;
+  --text4: #d1d1d6;
+  --separator: rgba(0, 0, 0, 0.06);
+  --blue: #0071e3;
+  --blue-hover: #0077ed;
+  --blue-bg: rgba(0, 113, 227, 0.07);
+  --green: #30d158;
+  --red: #ff453a;
+  --purple: #bf5af2;
+
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 3px 10px rgba(0, 0, 0, 0.06),
+    0 12px 36px rgba(0, 0, 0, 0.06);
+  --hover-shadow: 0 2px 4px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.08),
+    0 20px 48px rgba(0, 0, 0, 0.08);
+  --button-shadow: 0 2px 8px rgba(0, 113, 227, 0.3);
+
+  --radius-card: 24px;
+  --radius-button: 24px;
+  --radius-segment: 12px;
+  --radius-input: 24px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000;
+    --surface: #1c1c1e;
+    --surface-hover: #2c2c2e;
+    --text: #f5f5f7;
+    --text2: #98989d;
+    --text3: #636366;
+    --text4: #3a3a3c;
+    --separator: rgba(255, 255, 255, 0.07);
+    --blue: #0a84ff;
+    --blue-hover: #409cff;
+    --blue-bg: rgba(10, 132, 255, 0.12);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Inter", -apple-system, "SF Pro Display", system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.47;
+  letter-spacing: -0.022em;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--blue);
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--text4);
+  border-radius: 3px;
+}

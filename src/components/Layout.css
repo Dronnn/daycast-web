@@ -1,0 +1,110 @@
+.layout {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Top bar */
+.topbar {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 0.5px solid var(--separator);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+/* Logo */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #0071e3, #5856d6, #bf5af2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 113, 227, 0.25);
+}
+
+.logo-text {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+/* Segmented control */
+.segmented-control {
+  display: flex;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--separator);
+  border-radius: 12px;
+  padding: 3px;
+}
+
+.segment {
+  padding: 7px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text2);
+  border-radius: 9px;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+  user-select: none;
+}
+
+.segment:hover {
+  color: var(--text);
+}
+
+.segment--active {
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Date */
+.topbar-date {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text3);
+}
+
+/* Main content */
+.main {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .logo-text {
+    display: none;
+  }
+
+  .topbar-date {
+    display: none;
+  }
+
+  .segment {
+    padding: 7px 14px;
+    font-size: 12px;
+  }
+
+  .topbar {
+    padding: 0 16px;
+  }
+}

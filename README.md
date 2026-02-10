@@ -1,1 +1,90 @@
-# daycast-web
+# DayCast Web
+
+React SPA frontend for DayCast — a personal AI-powered service that transforms daily inputs into tailored content for multiple channels.
+
+Built with React 19, TypeScript, Vite, and React Router.
+
+## Pages
+
+- **Feed** — chat-like input stream. Add text, links (with URL extraction), and photos. Edit and delete items. Drag & drop support. "Clear day" soft-deletes all items.
+- **Generate** — trigger AI generation for all active channels. View results as cards with Copy button. Regenerate per-channel or all. Switch between multiple generations per day.
+- **Channels** — configure which channels are active. Set default style, language, and output length per channel.
+- **History** — browse past days with search. Click into a day to see all inputs (with cleared/edited badges) and all generations. Copy any result. View edit history for modified items.
+
+## Tech Stack
+
+- **React 19** with functional components and hooks
+- **TypeScript 5.7**
+- **Vite 6** — dev server with API proxy, production builds
+- **React Router 7** — client-side routing
+- **CSS** — custom styles (no framework), CSS variables for theming
+
+## Project Structure
+
+```
+daycast-web/
+├── src/
+│   ├── api/client.ts         # API client (fetch wrapper, X-Client-ID header)
+│   ├── components/
+│   │   ├── Layout.tsx        # App shell with navigation
+│   │   └── Layout.css
+│   ├── pages/
+│   │   ├── Feed.tsx          # Input stream (main page)
+│   │   ├── Generate.tsx      # AI generation results
+│   │   ├── Channels.tsx      # Channel settings
+│   │   ├── History.tsx       # Day list with search
+│   │   └── HistoryDetail.tsx # Single day detail view
+│   ├── types/index.ts        # TypeScript types (mirrors API schemas)
+│   ├── hooks/                # (reserved)
+│   ├── main.tsx              # App entry point
+│   └── index.css             # Global styles
+├── index.html
+├── package.json
+├── tsconfig.json
+└── vite.config.ts
+```
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Start dev server (port 5173, proxies /api to localhost:8000)
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+The dev server proxies `/api` requests to `http://localhost:8000` (the API backend).
+
+## Production
+
+The production build (`npm run build` → `dist/`) is served by the API backend directly. No separate web server needed.
+
+Deploy is handled from the API repo:
+```bash
+cd ../daycast-api
+make deploy-mac
+```
+
+This builds the web, copies `dist/` to the Mac, and the API serves it as static files.
+
+## API Integration
+
+The web app communicates with the backend via REST API at `/api/v1/`. Authentication is handled by a fixed `X-Client-ID` header (UUID stored in localStorage).
+
+Key API calls:
+- `GET/POST/PUT/DELETE /api/v1/inputs` — manage input items
+- `POST /api/v1/generate` — trigger AI content generation
+- `GET /api/v1/days` — browse history
+- `GET/POST /api/v1/settings/channels` — channel configuration
+- `GET /api/v1/channels`, `/styles`, `/languages`, `/lengths` — catalog data
+
+## License
+
+Private project.
