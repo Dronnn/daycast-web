@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { api } from "../api/client";
+import { api, publishPost, unpublishPost, getPublishStatus } from "../api/client";
 import type {
   DayResponse,
   Generation,
@@ -72,10 +72,16 @@ function ResultCard({
   result,
   onRegenerate,
   regenerating,
+  publishedPostId,
+  onPublish,
+  onUnpublish,
 }: {
   result: GenerationResult;
   onRegenerate: (channelId: string) => void;
   regenerating: boolean;
+  publishedPostId: string | null | undefined;
+  onPublish: (resultId: string) => void;
+  onUnpublish: (resultId: string) => void;
 }) {
   const m = channelMeta(result.channel_id);
   const [copied, setCopied] = useState(false);
@@ -111,6 +117,18 @@ function ResultCard({
         >
           Regenerate
         </button>
+        {publishedPostId ? (
+          <>
+            <span className="gen-card-badge published">Published</span>
+            <button className="gen-card-btn unpublish" onClick={() => onUnpublish(result.id)}>
+              Unpublish
+            </button>
+          </>
+        ) : (
+          <button className="gen-card-btn publish" onClick={() => onPublish(result.id)}>
+            Publish
+          </button>
+        )}
       </div>
     </div>
   );
@@ -137,6 +155,7 @@ export default function Generate() {
   const [generating, setGenerating] = useState(false);
   const [showSource, setShowSource] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [publishStatus, setPublishStatus] = useState<Record<string, string | null>>({});
 
   const date = todayISO();
 
@@ -160,6 +179,33 @@ export default function Generate() {
   }, [fetchDay]);
 
   const currentGen = generations[genIdx] ?? null;
+
+  useEffect(() => {
+    if (!currentGen) return;
+    const ids = currentGen.results.map(r => r.id);
+    if (ids.length === 0) return;
+    getPublishStatus(ids).then(resp => setPublishStatus(resp.statuses)).catch(() => {});
+  }, [currentGen]);
+
+  async function handlePublish(resultId: string) {
+    try {
+      const post = await publishPost(resultId);
+      setPublishStatus(prev => ({ ...prev, [resultId]: post.id }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Publish failed");
+    }
+  }
+
+  async function handleUnpublish(resultId: string) {
+    const postId = publishStatus[resultId];
+    if (!postId) return;
+    try {
+      await unpublishPost(postId);
+      setPublishStatus(prev => ({ ...prev, [resultId]: null }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unpublish failed");
+    }
+  }
 
   async function handleGenerate() {
     setGenerating(true);
@@ -381,6 +427,9 @@ export default function Generate() {
                     result={result}
                     onRegenerate={handleRegenerateChannel}
                     regenerating={generating}
+                    publishedPostId={publishStatus[result.id]}
+                    onPublish={handlePublish}
+                    onUnpublish={handleUnpublish}
                   />
                 ))}
               </div>

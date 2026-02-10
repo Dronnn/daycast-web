@@ -74,3 +74,17 @@ export const api = {
     request<T>(path, { method: "PUT", body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
 };
+
+import type { PublishedPostResponse, PublishStatusResponse } from "../types";
+
+export function publishPost(resultId: string) {
+  return api.post<PublishedPostResponse>("/publish", { generation_result_id: resultId });
+}
+
+export function unpublishPost(postId: string) {
+  return api.delete<void>(`/publish/${postId}`);
+}
+
+export function getPublishStatus(resultIds: string[]) {
+  return api.get<PublishStatusResponse>(`/publish/status?result_ids=${resultIds.join(",")}`);
+}

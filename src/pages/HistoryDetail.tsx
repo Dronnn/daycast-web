@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { api } from "../api/client";
+import { api, publishPost, unpublishPost, getPublishStatus } from "../api/client";
 import type { DayResponse, InputItem } from "../types";
 import "./HistoryDetail.css";
 
@@ -81,6 +81,7 @@ export default function HistoryDetail() {
   const [day, setDay] = useState<DayResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [publishStatus, setPublishStatus] = useState<Record<string, string | null>>({});
 
   const fetchDay = useCallback(async () => {
     if (!date) return;
@@ -102,6 +103,33 @@ export default function HistoryDetail() {
     copyText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 1500);
+  }
+
+  useEffect(() => {
+    if (!day) return;
+    const ids = day.generations.flatMap(g => g.results.map(r => r.id));
+    if (ids.length === 0) return;
+    getPublishStatus(ids).then(resp => setPublishStatus(resp.statuses)).catch(() => {});
+  }, [day]);
+
+  async function handlePublish(resultId: string) {
+    try {
+      const post = await publishPost(resultId);
+      setPublishStatus(prev => ({ ...prev, [resultId]: post.id }));
+    } catch {
+      // silent
+    }
+  }
+
+  async function handleUnpublish(resultId: string) {
+    const postId = publishStatus[resultId];
+    if (!postId) return;
+    try {
+      await unpublishPost(postId);
+      setPublishStatus(prev => ({ ...prev, [resultId]: null }));
+    } catch {
+      // silent
+    }
   }
 
   if (loading) {
@@ -206,6 +234,18 @@ export default function HistoryDetail() {
                     >
                       {copiedId === r.id ? "Copied!" : "Copy"}
                     </button>
+                    {publishStatus[r.id] ? (
+                      <>
+                        <span className="hd-published-badge">Published</span>
+                        <button className="hd-unpublish-btn" onClick={() => handleUnpublish(r.id)}>
+                          Unpublish
+                        </button>
+                      </>
+                    ) : (
+                      <button className="hd-publish-btn" onClick={() => handlePublish(r.id)}>
+                        Publish
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>

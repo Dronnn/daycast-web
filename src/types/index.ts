@@ -97,3 +97,19 @@ export interface ErrorResponse {
   code: string;
   detail: string | null;
 }
+
+export interface PublishedPostResponse {
+  id: string;
+  slug: string;
+  channel_id: string;
+  style: string;
+  language: string;
+  text: string;
+  date: string;
+  published_at: string;
+  input_items_preview: string[];
+}
+
+export interface PublishStatusResponse {
+  statuses: Record<string, string | null>;
+}
