@@ -1,27 +1,29 @@
 const API_BASE = "/api/v1";
 
-function generateUUID(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    try {
-      return crypto.randomUUID();
-    } catch {
-      // falls through to fallback
-    }
-  }
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
+function getToken(): string | null {
+  return localStorage.getItem("daycast_token");
 }
 
-function getClientId(): string {
-  let id = localStorage.getItem("daycast_client_id");
-  if (!id) {
-    id = generateUUID();
-    localStorage.setItem("daycast_client_id", id);
-  }
-  return id;
+export function setToken(token: string): void {
+  localStorage.setItem("daycast_token", token);
+}
+
+export function logout(): void {
+  localStorage.removeItem("daycast_token");
+  localStorage.removeItem("daycast_username");
+  window.location.href = "/login";
+}
+
+export function isAuthenticated(): boolean {
+  return !!getToken();
+}
+
+export function getUsername(): string | null {
+  return localStorage.getItem("daycast_username");
+}
+
+export function setUsername(username: string): void {
+  localStorage.setItem("daycast_username", username);
 }
 
 async function request<T>(
@@ -29,9 +31,13 @@ async function request<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const headers: Record<string, string> = {
-    "X-Client-ID": getClientId(),
     ...(options.headers as Record<string, string> | undefined),
   };
+
+  const token = getToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
 
   // Don't set Content-Type for FormData (browser sets it with boundary)
   if (!(options.body instanceof FormData)) {
@@ -42,6 +48,11 @@ async function request<T>(
     ...options,
     headers,
   });
+
+  if (resp.status === 401) {
+    logout();
+    throw new Error("Session expired");
+  }
 
   if (!resp.ok) {
     const body = await resp.json().catch(() => null);

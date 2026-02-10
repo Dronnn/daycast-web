@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { logout, getUsername } from "@/api/client";
 import "./Layout.css";
 
 const NAV_ITEMS = [
@@ -30,6 +31,8 @@ function formatDate(): string {
 }
 
 export default function Layout() {
+  const username = getUsername();
+
   return (
     <div className="layout">
       <header className="topbar">
@@ -48,7 +51,16 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
-        <span className="topbar-date">{formatDate()}</span>
+        <div className="topbar-right">
+          <span className="topbar-date">{formatDate()}</span>
+          <button className="topbar-logout" onClick={logout} title={username ?? ""}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
+        </div>
       </header>
       <main className="main">
         <Outlet />
