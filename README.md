@@ -7,9 +7,9 @@ Built with React 19, TypeScript, Vite, and React Router.
 ## Pages
 
 - **Feed** — chat-like input stream. Add text, links (with URL extraction), and photos. Edit and delete items. Drag & drop support. "Clear day" soft-deletes all items.
-- **Generate** — trigger AI generation for all active channels. View results as cards with Copy button. Regenerate per-channel or all. Switch between multiple generations per day.
+- **Generate** — trigger AI generation for all active channels. View results as cards with Copy button. Regenerate per-channel or all. Switch between multiple generations per day. Publish/unpublish results to the public blog.
 - **Channels** — configure which channels are active. Set default style, language, and output length per channel.
-- **History** — browse past days with search. Click into a day to see all inputs (with cleared/edited badges) and all generations. Copy any result. View edit history for modified items.
+- **History** — browse past days with search. Click into a day to see all inputs (with cleared/edited badges) and all generations. Copy any result. View edit history for modified items. Publish/unpublish from history detail.
 - **Login / Register** — username + password authentication. JWT stored in localStorage. Auto-redirect to login page without token. Auto-logout on 401.
 
 ## Tech Stack
@@ -87,6 +87,7 @@ Key API calls:
 - `GET /api/v1/days` — browse history
 - `GET/POST /api/v1/settings/channels` — channel configuration
 - `GET /api/v1/channels`, `/styles`, `/languages`, `/lengths` — catalog data
+- `POST /api/v1/publish`, `DELETE /api/v1/publish/{id}`, `GET /api/v1/publish/status` — publishing
 
 ## License
 
