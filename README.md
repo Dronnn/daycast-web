@@ -10,6 +10,7 @@ Built with React 19, TypeScript, Vite, and React Router.
 - **Generate** — trigger AI generation for all active channels. View results as cards with Copy button. Regenerate per-channel or all. Switch between multiple generations per day.
 - **Channels** — configure which channels are active. Set default style, language, and output length per channel.
 - **History** — browse past days with search. Click into a day to see all inputs (with cleared/edited badges) and all generations. Copy any result. View edit history for modified items.
+- **Login / Register** — username + password authentication. JWT stored in localStorage. Auto-redirect to login page without token. Auto-logout on 401.
 
 ## Tech Stack
 
@@ -24,7 +25,7 @@ Built with React 19, TypeScript, Vite, and React Router.
 ```
 daycast-web/
 ├── src/
-│   ├── api/client.ts         # API client (fetch wrapper, X-Client-ID header)
+│   ├── api/client.ts         # API client (fetch wrapper, JWT auth, auto-logout)
 │   ├── components/
 │   │   ├── Layout.tsx        # App shell with navigation
 │   │   └── Layout.css
@@ -33,7 +34,9 @@ daycast-web/
 │   │   ├── Generate.tsx      # AI generation results
 │   │   ├── Channels.tsx      # Channel settings
 │   │   ├── History.tsx       # Day list with search
-│   │   └── HistoryDetail.tsx # Single day detail view
+│   │   ├── HistoryDetail.tsx # Single day detail view
+│   │   ├── Login.tsx         # Login / Register page
+│   │   └── Login.css
 │   ├── types/index.ts        # TypeScript types (mirrors API schemas)
 │   ├── hooks/                # (reserved)
 │   ├── main.tsx              # App entry point
@@ -76,7 +79,7 @@ This builds the web, copies `dist/` to the Mac, and the API serves it as static 
 
 ## API Integration
 
-The web app communicates with the backend via REST API at `/api/v1/`. Authentication is handled by a fixed `X-Client-ID` header (UUID stored in localStorage).
+The web app communicates with the backend via REST API at `/api/v1/`. Authentication is via JWT — token stored in localStorage and sent as `Authorization: Bearer` header with every request. On 401 response, the user is automatically logged out and redirected to `/login`.
 
 Key API calls:
 - `GET/POST/PUT/DELETE /api/v1/inputs` — manage input items
