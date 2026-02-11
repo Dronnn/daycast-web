@@ -338,35 +338,7 @@ export default function Generate() {
           {/* ── Results ── */}
           {showResults && (
             <>
-              <div className="gen-results-header">
-                <div>
-                  <p className="gen-results-label">
-                    Generation #{genIdx + 1}
-                    {generations.length > 1 && (
-                      <span className="gen-nav">
-                        <button
-                          className="gen-nav-btn"
-                          disabled={genIdx === 0}
-                          onClick={() => setGenIdx((i) => i - 1)}
-                        >
-                          &lsaquo;
-                        </button>
-                        <span>
-                          {genIdx + 1}/{generations.length}
-                        </span>
-                        <button
-                          className="gen-nav-btn"
-                          disabled={genIdx === generations.length - 1}
-                          onClick={() => setGenIdx((i) => i + 1)}
-                        >
-                          &rsaquo;
-                        </button>
-                      </span>
-                    )}
-                  </p>
-                  <h2 className="gen-results-title">Your Content</h2>
-                </div>
-                <div className="gen-results-actions">
+              <div className="gen-actions-bar">
                   <button
                     className="gen-source-btn"
                     onClick={() => setShowSource((s) => !s)}
@@ -415,6 +387,35 @@ export default function Generate() {
                     </svg>
                     Generate New
                   </button>
+              </div>
+
+              <div className="gen-results-header">
+                <div>
+                  <p className="gen-results-label">
+                    Generation #{genIdx + 1}
+                    {generations.length > 1 && (
+                      <span className="gen-nav">
+                        <button
+                          className="gen-nav-btn"
+                          disabled={genIdx === 0}
+                          onClick={() => setGenIdx((i) => i - 1)}
+                        >
+                          &lsaquo;
+                        </button>
+                        <span>
+                          {genIdx + 1}/{generations.length}
+                        </span>
+                        <button
+                          className="gen-nav-btn"
+                          disabled={genIdx === generations.length - 1}
+                          onClick={() => setGenIdx((i) => i + 1)}
+                        >
+                          &rsaquo;
+                        </button>
+                      </span>
+                    )}
+                  </p>
+                  <h2 className="gen-results-title">Your Content</h2>
                 </div>
               </div>
 
