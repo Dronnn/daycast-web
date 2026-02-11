@@ -170,12 +170,16 @@ export default function Channels() {
           </div>
           <div className="gen-setting-row toggle-row">
             <label className="gen-setting-label">Separate business & personal events</label>
-            <button
-              className={`toggle ${separateBusinessPersonal ? 'toggle-on' : ''}`}
-              onClick={() => setSeparateBusinessPersonal(!separateBusinessPersonal)}
-            >
-              <span className="toggle-thumb" />
-            </button>
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={separateBusinessPersonal}
+                onChange={() => setSeparateBusinessPersonal(!separateBusinessPersonal)}
+              />
+              <span className="toggle-track">
+                <span className="toggle-thumb" />
+              </span>
+            </label>
           </div>
           <button className="gen-settings-save" onClick={handleSaveGenSettings} disabled={genSettingsLoading}>
             {genSettingsLoading ? 'Saving...' : 'Save'}
