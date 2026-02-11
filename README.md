@@ -7,8 +7,8 @@ Built with React 19, TypeScript, Vite, and React Router.
 ## Pages
 
 - **Feed** — chat-like input stream. Add text, links (with URL extraction), and photos. Edit and delete items. Star importance rating (1–5). AI toggle to include/exclude items from generation. Edit history viewer. Export day as text. Publish input items directly. Drag & drop support. "Clear day" soft-deletes all items.
-- **Generate** — trigger AI generation for all active channels. View results as cards with Copy button. Regenerate per-channel or all. Switch between multiple generations per day. Publish/unpublish results to the public blog.
-- **Channels** — configure which channels are active. Set default style, language, and output length per channel. Generation settings: custom AI instruction and separate business/personal toggle.
+- **Generate** — trigger AI generation for all active channels. View results as cards with Copy button. Regenerate per-channel or all. Generate New button for fresh generation with updated settings. Switch between multiple generations per day. Publish/unpublish results to the public blog.
+- **Channels** — configure which channels are active. Set default style, language, and output length per channel. Generation settings: custom AI instruction and separate business/personal toggle. All settings auto-save on change (debounced).
 - **History** — browse past days with search. Click into a day to see all inputs (with cleared/edited badges) and all generations. Copy any result. View edit history for modified items. Publish/unpublish from history detail.
 - **Login / Register** — username + password authentication. JWT stored in localStorage. Auto-redirect to login page without token. Auto-logout on 401.
 
