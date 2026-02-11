@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { api } from "../api/client";
+import { api, getGenerationSettings, saveGenerationSettings } from "../api/client";
 import type { ChannelSetting } from "../types";
 import "./Channels.css";
 
@@ -41,16 +41,7 @@ const CHANNELS = [
   },
 ];
 
-const STYLES = [
-  "concise",
-  "detailed",
-  "structured",
-  "plan",
-  "advisory",
-  "casual",
-  "funny",
-  "serious",
-];
+const STYLES = ["concise", "detailed", "structured", "plan", "advisory", "casual", "funny", "serious", "list_numbered", "list_bulleted"];
 const LANGUAGES = ["ru", "en", "de", "hy"];
 const LENGTHS = [
   { id: "brief", label: "Brief" },
@@ -77,6 +68,9 @@ export default function Channels() {
   const [settings, setSettings] = useState<LocalSettings>(buildDefaults);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [customInstruction, setCustomInstruction] = useState('');
+  const [separateBusinessPersonal, setSeparateBusinessPersonal] = useState(false);
+  const [genSettingsLoading, setGenSettingsLoading] = useState(false);
 
   const loadSettings = useCallback(async () => {
     try {
@@ -103,6 +97,27 @@ export default function Channels() {
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
+
+  useEffect(() => {
+    getGenerationSettings().then(s => {
+      setCustomInstruction(s.custom_instruction || '');
+      setSeparateBusinessPersonal(s.separate_business_personal);
+    }).catch(() => {});
+  }, []);
+
+  const handleSaveGenSettings = useCallback(async () => {
+    setGenSettingsLoading(true);
+    try {
+      await saveGenerationSettings({
+        custom_instruction: customInstruction || null,
+        separate_business_personal: separateBusinessPersonal,
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {} finally {
+      setGenSettingsLoading(false);
+    }
+  }, [customInstruction, separateBusinessPersonal]);
 
   function updateChannel(
     channelId: string,
@@ -140,6 +155,33 @@ export default function Channels() {
         Choose which channels to generate content for and set default style,
         language, and length.
       </p>
+      <section className="gen-settings-section">
+        <h3 className="gen-settings-title">Generation Settings</h3>
+        <div className="gen-settings-card">
+          <div className="gen-setting-row">
+            <label className="gen-setting-label">Custom instruction for AI</label>
+            <textarea
+              className="gen-setting-textarea"
+              value={customInstruction}
+              onChange={e => setCustomInstruction(e.target.value)}
+              placeholder="E.g.: Always mention the weather. Write in a formal tone..."
+              rows={3}
+            />
+          </div>
+          <div className="gen-setting-row toggle-row">
+            <label className="gen-setting-label">Separate business & personal events</label>
+            <button
+              className={`toggle ${separateBusinessPersonal ? 'toggle-on' : ''}`}
+              onClick={() => setSeparateBusinessPersonal(!separateBusinessPersonal)}
+            >
+              <span className="toggle-thumb" />
+            </button>
+          </div>
+          <button className="gen-settings-save" onClick={handleSaveGenSettings} disabled={genSettingsLoading}>
+            {genSettingsLoading ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </section>
       <div className="channels-list">
         {CHANNELS.map((ch) => {
           const s = settings[ch.id];

@@ -75,7 +75,7 @@ export const api = {
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
 };
 
-import type { PublishedPostResponse, PublishStatusResponse } from "../types";
+import type { PublishedPostResponse, PublishStatusResponse, GenerationSettingsRequest, GenerationSettingsResponse, ExportResponse } from "../types";
 
 export function publishPost(resultId: string) {
   return api.post<PublishedPostResponse>("/publish", { generation_result_id: resultId });
@@ -87,4 +87,24 @@ export function unpublishPost(postId: string) {
 
 export function getPublishStatus(resultIds: string[]) {
   return api.get<PublishStatusResponse>(`/publish/status?result_ids=${resultIds.join(",")}`);
+}
+
+export function publishInputItem(inputItemId: string) {
+  return api.post<PublishedPostResponse>("/publish/input", { input_item_id: inputItemId });
+}
+
+export function getInputPublishStatus(inputIds: string[]) {
+  return api.get<PublishStatusResponse>(`/publish/input-status?input_ids=${inputIds.join(",")}`);
+}
+
+export function getGenerationSettings() {
+  return api.get<GenerationSettingsResponse>("/settings/generation");
+}
+
+export function saveGenerationSettings(settings: GenerationSettingsRequest) {
+  return api.post<GenerationSettingsResponse>("/settings/generation", settings);
+}
+
+export function exportDay(date: string, format: string = "plain") {
+  return api.get<ExportResponse>(`/inputs/export?date=${date}&format=${format}`);
 }

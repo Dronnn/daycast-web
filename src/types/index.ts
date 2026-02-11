@@ -14,6 +14,8 @@ export interface InputItem {
   extract_error: string | null;
   date: string;
   cleared: boolean;
+  importance: number | null;
+  include_in_generation: boolean;
   created_at: string;
   updated_at: string;
   edits?: InputItemEdit[];
@@ -23,10 +25,14 @@ export interface InputItemCreateRequest {
   type: InputItemType;
   content: string;
   date?: string;
+  importance?: number | null;
+  include_in_generation?: boolean;
 }
 
 export interface InputItemUpdateRequest {
-  content: string;
+  content?: string;
+  importance?: number | null;
+  include_in_generation?: boolean;
 }
 
 export interface GenerateRequest {
@@ -101,15 +107,36 @@ export interface ErrorResponse {
 export interface PublishedPostResponse {
   id: string;
   slug: string;
-  channel_id: string;
-  style: string;
-  language: string;
+  channel_id: string | null;
+  style: string | null;
+  language: string | null;
   text: string;
   date: string;
   published_at: string;
   input_items_preview: string[];
+  source: string;
 }
 
 export interface PublishStatusResponse {
   statuses: Record<string, string | null>;
+}
+
+export interface GenerationSettingsRequest {
+  custom_instruction: string | null;
+  separate_business_personal: boolean;
+}
+
+export interface GenerationSettingsResponse {
+  custom_instruction: string | null;
+  separate_business_personal: boolean;
+}
+
+export interface PublishInputRequest {
+  input_item_id: string;
+}
+
+export interface ExportResponse {
+  text: string;
+  date: string;
+  count: number;
 }

@@ -430,6 +430,88 @@
   cursor: default;
 }
 
+/* ── Stars ── */
+.item-stars { display: flex; gap: 2px; margin-top: 4px; }
+.item-stars .star { cursor: pointer; font-size: 14px; color: var(--text4); transition: color 0.15s; }
+.item-stars .star-filled { color: #FFD60A; }
+.item-stars .star:hover { color: #FFD60A; }
+
+/* ── Excluded item ── */
+.item-excluded .bubble,
+.item-excluded .bubble.link-card,
+.item-excluded .bubble.photo { opacity: 0.35; }
+.item-excluded .item-time { opacity: 0.4; }
+.item-excluded .item-stars { opacity: 0.3; }
+
+/* ── AI pill toggle ── */
+.ai-pill {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 1.4;
+  font-family: inherit;
+  border: 1.5px solid var(--blue);
+  background: var(--blue);
+  color: white;
+}
+.ai-pill:hover {
+  opacity: 0.85;
+}
+.ai-pill.ai-pill--off {
+  background: transparent;
+  border-color: var(--text4);
+  color: var(--text4);
+}
+.ai-pill.ai-pill--off:hover {
+  border-color: var(--text3);
+  color: var(--text3);
+  opacity: 1;
+}
+
+/* ── Edited badge & history ── */
+.edit-history-section { align-self: flex-end; }
+
+.edited-badge {
+  font-size: 11px;
+  color: var(--text3);
+  background: var(--surface-hover);
+  border-radius: 8px;
+  padding: 2px 8px;
+  margin-top: 4px;
+  cursor: pointer;
+  border: none;
+}
+.edited-badge:hover { background: var(--separator); }
+
+.edit-history-list {
+  margin-top: 6px;
+  padding-left: 8px;
+  border-left: 2px solid var(--separator);
+}
+.edit-entry { margin-bottom: 6px; }
+.edit-old-content {
+  font-size: 13px;
+  color: var(--text3);
+  white-space: pre-wrap;
+}
+.edit-time { font-size: 11px; color: var(--text4); margin-top: 2px; }
+
+/* ── Export button ── */
+.export-btn {
+  font-size: 13px;
+  color: var(--text3);
+  cursor: pointer;
+}
+.export-btn:hover { color: var(--text); }
+
+/* ── Publish / Unpublish ── */
+.publish-btn { color: var(--green) !important; }
+.unpublish-btn { color: var(--red) !important; }
+
 /* ── Responsive ── */
 @media (max-width: 600px) {
   .composer {

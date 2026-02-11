@@ -45,6 +45,31 @@ function copyText(text: string) {
   }
 }
 
+function computeWordDiff(oldText: string, newText: string): { type: 'same' | 'added' | 'removed'; text: string }[] {
+  const oldWords = oldText.split(/(\s+)/);
+  const newWords = newText.split(/(\s+)/);
+  const result: { type: 'same' | 'added' | 'removed'; text: string }[] = [];
+
+  let i = 0, j = 0;
+  while (i < oldWords.length && j < newWords.length) {
+    if (oldWords[i] === newWords[j]) {
+      result.push({ type: 'same', text: oldWords[i] });
+      i++; j++;
+    } else {
+      result.push({ type: 'removed', text: oldWords[i] });
+      result.push({ type: 'added', text: newWords[j] });
+      i++; j++;
+    }
+  }
+  while (i < oldWords.length) {
+    result.push({ type: 'removed', text: oldWords[i++] });
+  }
+  while (j < newWords.length) {
+    result.push({ type: 'added', text: newWords[j++] });
+  }
+  return result;
+}
+
 function EditHistory({ item }: { item: InputItem }) {
   const [expanded, setExpanded] = useState(false);
   const edits = item.edits || [];
@@ -66,7 +91,13 @@ function EditHistory({ item }: { item: InputItem }) {
               <span className="hd-edit-time">
                 {formatTime(edit.edited_at)}
               </span>
-              <p className="hd-edit-content">{edit.old_content}</p>
+              <div className="diff-display">
+                {computeWordDiff(edit.old_content, item.content).map((part, idx) => (
+                  <span key={idx} className={part.type === 'removed' ? 'diff-removed' : part.type === 'added' ? 'diff-added' : ''}>
+                    {part.text}
+                  </span>
+                ))}
+              </div>
             </div>
           ))}
         </div>
@@ -177,6 +208,14 @@ export default function HistoryDetail() {
                 {item.cleared && <span className="hd-cleared-badge">Deleted</span>}
                 {(item.edits?.length ?? 0) > 0 && !item.cleared && (
                   <span className="hd-edited-badge">Edited</span>
+                )}
+                {!item.include_in_generation && (
+                  <span className="hd-excluded-badge">Excluded</span>
+                )}
+                {item.importance != null && item.importance > 0 && (
+                  <span className="hd-importance">
+                    {'★'.repeat(item.importance)}
+                  </span>
                 )}
                 {item.type === "image" ? (
                   <img

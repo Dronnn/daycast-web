@@ -18,6 +18,65 @@
   letter-spacing: -0.01em;
 }
 
+/* Generation Settings */
+.gen-settings-section {
+  margin-bottom: 32px;
+}
+.gen-settings-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.gen-settings-card {
+  background: var(--surface);
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-card);
+  padding: 20px;
+}
+.gen-setting-row {
+  margin-bottom: 16px;
+}
+.gen-setting-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 6px;
+}
+.gen-setting-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--separator);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 60px;
+}
+.gen-setting-textarea:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.gen-settings-save {
+  padding: 8px 20px;
+  background: var(--blue);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.gen-settings-save:hover { filter: brightness(1.1); }
+.gen-settings-save:disabled { opacity: 0.5; }
+
 /* Grouped list */
 .channels-list {
   background: var(--surface);

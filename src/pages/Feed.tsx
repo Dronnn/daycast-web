@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api } from "../api/client";
-import type { InputItem } from "../types";
+import { api, publishInputItem, unpublishPost, getInputPublishStatus, exportDay } from "../api/client";
+import type { InputItem, DayResponse } from "../types";
 import "./Feed.css";
 
 function todayISO(): string {
@@ -42,32 +42,95 @@ export default function Feed() {
   const [editText, setEditText] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expandedEdits, setExpandedEdits] = useState<Set<string>>(new Set());
+  const [publishedMap, setPublishedMap] = useState<Record<string, string>>({}); // input_item_id -> post_id
 
   const listRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const date = todayISO();
 
   const fetchItems = useCallback(async () => {
     try {
-      const data = await api.get<InputItem[]>(`/inputs?date=${date}`);
-      setItems(data);
+      setLoading(true);
+      const day = await api.get<DayResponse>(`/days/${todayISO()}`);
+      setItems(day.input_items.filter(i => !i.cleared));
     } catch {
-      // empty feed on error
+      try {
+        const data = await api.get<InputItem[]>(`/inputs?date=${todayISO()}`);
+        setItems(data);
+      } catch {
+        // empty feed on error
+      }
     } finally {
       setLoading(false);
     }
-  }, [date]);
+  }, []);
 
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
 
   useEffect(() => {
-    if (listRef.current) {
-      listRef.current.scrollTop = listRef.current.scrollHeight;
-    }
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [items.length]);
+
+  // Fetch publish status for text items
+  useEffect(() => {
+    const textIds = items.filter(i => i.type === "text").map(i => i.id);
+    if (textIds.length === 0) return;
+    getInputPublishStatus(textIds).then(res => {
+      const map: Record<string, string> = {};
+      for (const [inputId, postId] of Object.entries(res.statuses)) {
+        if (postId) map[inputId] = postId;
+      }
+      setPublishedMap(map);
+    }).catch(() => {});
   }, [items]);
+
+  const handleSetImportance = useCallback(async (id: string, importance: number | null) => {
+    try {
+      await api.put(`/inputs/${id}`, { importance });
+      setItems(prev => prev.map(item => item.id === id ? { ...item, importance } : item));
+    } catch {}
+  }, []);
+
+  const handleToggleGeneration = useCallback(async (id: string, include: boolean) => {
+    try {
+      await api.put(`/inputs/${id}`, { include_in_generation: include });
+      setItems(prev => prev.map(item => item.id === id ? { ...item, include_in_generation: include } : item));
+    } catch {}
+  }, []);
+
+  const handleTogglePublish = useCallback(async (inputItemId: string) => {
+    const postId = publishedMap[inputItemId];
+    try {
+      if (postId) {
+        await unpublishPost(postId);
+        setPublishedMap(prev => { const next = { ...prev }; delete next[inputItemId]; return next; });
+        setError("Unpublished!");
+      } else {
+        const post = await publishInputItem(inputItemId);
+        setPublishedMap(prev => ({ ...prev, [inputItemId]: post.id }));
+        setError("Published!");
+      }
+      setTimeout(() => setError(null), 2000);
+    } catch (e: any) {
+      setError(e.message);
+    }
+  }, [publishedMap]);
+
+  const handleExport = useCallback(async () => {
+    try {
+      const result = await exportDay(todayISO());
+      await navigator.clipboard.writeText(result.text);
+      setError("Copied to clipboard!");
+      setTimeout(() => setError(null), 2000);
+    } catch (e: any) {
+      setError(e.message);
+    }
+  }, []);
 
   async function handleSend() {
     const value = text.trim();
@@ -205,9 +268,12 @@ export default function Feed() {
       <div className="feed-header">
         <span className="feed-date">Today, {formatFeedDate()}</span>
         {items.length > 0 && (
-          <button className="feed-clear" onClick={handleClearDay}>
-            Clear day
-          </button>
+          <>
+            <button className="feed-clear" onClick={handleClearDay}>
+              Clear day
+            </button>
+            <button className="day-action export-btn" onClick={handleExport}>Export</button>
+          </>
         )}
       </div>
 
@@ -226,7 +292,7 @@ export default function Feed() {
         ) : (
           <div className="feed-items">
             {items.map((item) => (
-              <div key={item.id} className="item">
+              <div key={item.id} className={`item${!item.include_in_generation ? ' item-excluded' : ''}`}>
                 {editingId === item.id ? (
                   <div className="edit-bubble">
                     <input
@@ -286,11 +352,66 @@ export default function Feed() {
                   <div className="bubble">{item.content}</div>
                 )}
 
+                {/* Star rating */}
+                <div className="item-stars" onClick={e => e.stopPropagation()}>
+                  {[1,2,3,4,5].map(n => (
+                    <span
+                      key={n}
+                      className={`star ${(item.importance || 0) >= n ? 'star-filled' : ''}`}
+                      onClick={() => handleSetImportance(item.id, item.importance === n ? null : n)}
+                    >
+                      {(item.importance || 0) >= n ? '\u2605' : '\u2606'}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Edit history */}
+                {item.edits && item.edits.length > 0 && (
+                  <div className="edit-history-section">
+                    <button
+                      className="edited-badge"
+                      onClick={() => setExpandedEdits(prev => {
+                        const next = new Set(prev);
+                        next.has(item.id) ? next.delete(item.id) : next.add(item.id);
+                        return next;
+                      })}
+                    >
+                      Edited ({item.edits.length})
+                    </button>
+                    {expandedEdits.has(item.id) && (
+                      <div className="edit-history-list">
+                        {item.edits.map(edit => (
+                          <div key={edit.id} className="edit-entry">
+                            <div className="edit-old-content">{edit.old_content}</div>
+                            <div className="edit-time">{formatTime(edit.edited_at)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="item-meta">
                   <span className="item-time">
                     {formatTime(item.created_at)}
                   </span>
                   <div className="item-actions">
+                    <button
+                      className={`ai-pill ${!item.include_in_generation ? 'ai-pill--off' : ''}`}
+                      title={item.include_in_generation ? 'Included in AI generation' : 'Excluded from AI generation'}
+                      onClick={() => handleToggleGeneration(item.id, !item.include_in_generation)}
+                    >
+                      AI
+                    </button>
+                    {item.type === 'text' && (
+                      <button
+                        className={`item-act ${publishedMap[item.id] ? 'unpublish-btn' : 'publish-btn'}`}
+                        onClick={() => handleTogglePublish(item.id)}
+                        title={publishedMap[item.id] ? 'Unpublish' : 'Publish'}
+                      >
+                        {publishedMap[item.id] ? 'Unpublish' : 'Publish'}
+                      </button>
+                    )}
                     {item.type !== "image" && (
                       <button
                         className="item-act"
@@ -309,11 +430,12 @@ export default function Feed() {
                 </div>
               </div>
             ))}
+            <div ref={bottomRef} />
           </div>
         )}
       </div>
 
-      {error && <div style={{color:"#e74c3c",textAlign:"center",padding:"8px",fontSize:"14px"}}>{error}</div>}
+      {error && <div style={{color: error.startsWith("Published") || error.startsWith("Unpublished") || error.startsWith("Copied") ? "#34C759" : "#e74c3c",textAlign:"center",padding:"8px",fontSize:"14px"}}>{error}</div>}
       <div className="composer">
         <div className="composer-inner">
           <div className="composer-tools">
