@@ -66,10 +66,10 @@ function buildDefaults(): LocalSettings {
 
 export default function Channels() {
   const [settings, setSettings] = useState<LocalSettings>(buildDefaults);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [customInstruction, setCustomInstruction] = useState('');
   const [separateBusinessPersonal, setSeparateBusinessPersonal] = useState(false);
+  const channelsLoaded = useRef(false);
+  const channelSaveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const genSettingsLoaded = useRef(false);
   const genSaveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -90,8 +90,9 @@ export default function Channels() {
           return next;
         });
       }
+      channelsLoaded.current = true;
     } catch {
-      // use defaults
+      channelsLoaded.current = true;
     }
   }, []);
 
@@ -116,12 +117,25 @@ export default function Channels() {
           custom_instruction: customInstruction || null,
           separate_business_personal: separateBusinessPersonal,
         });
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
       } catch {}
     }, 500);
     return () => clearTimeout(genSaveTimer.current);
   }, [customInstruction, separateBusinessPersonal]);
+
+  useEffect(() => {
+    if (!channelsLoaded.current) return;
+    clearTimeout(channelSaveTimer.current);
+    channelSaveTimer.current = setTimeout(async () => {
+      try {
+        const channels = Object.entries(settings).map(([channel_id, s]) => ({
+          channel_id,
+          ...s,
+        }));
+        await api.post("/settings/channels", { channels });
+      } catch {}
+    }, 500);
+    return () => clearTimeout(channelSaveTimer.current);
+  }, [settings]);
 
   function updateChannel(
     channelId: string,
@@ -132,24 +146,6 @@ export default function Channels() {
       ...prev,
       [channelId]: { ...prev[channelId], [field]: value },
     }));
-    setSaved(false);
-  }
-
-  async function handleSave() {
-    setSaving(true);
-    try {
-      const channels = Object.entries(settings).map(([channel_id, s]) => ({
-        channel_id,
-        ...s,
-      }));
-      await api.post("/settings/channels", { channels });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch {
-      // ignore
-    } finally {
-      setSaving(false);
-    }
   }
 
   return (
@@ -261,15 +257,6 @@ export default function Channels() {
             </div>
           );
         })}
-      </div>
-      <div className="channels-save-wrap">
-        <button
-          className="channels-save-btn"
-          onClick={handleSave}
-          disabled={saving}
-        >
-          {saving ? "Saving..." : saved ? "Saved!" : "Save settings"}
-        </button>
       </div>
     </div>
   );
