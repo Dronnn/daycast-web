@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, getGenerationSettings, saveGenerationSettings } from "../api/client";
 import type { ChannelSetting } from "../types";
 import "./Channels.css";
@@ -70,7 +70,8 @@ export default function Channels() {
   const [saved, setSaved] = useState(false);
   const [customInstruction, setCustomInstruction] = useState('');
   const [separateBusinessPersonal, setSeparateBusinessPersonal] = useState(false);
-  const [genSettingsLoading, setGenSettingsLoading] = useState(false);
+  const genSettingsLoaded = useRef(false);
+  const genSaveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const loadSettings = useCallback(async () => {
     try {
@@ -102,21 +103,24 @@ export default function Channels() {
     getGenerationSettings().then(s => {
       setCustomInstruction(s.custom_instruction || '');
       setSeparateBusinessPersonal(s.separate_business_personal);
-    }).catch(() => {});
+      genSettingsLoaded.current = true;
+    }).catch(() => { genSettingsLoaded.current = true; });
   }, []);
 
-  const handleSaveGenSettings = useCallback(async () => {
-    setGenSettingsLoading(true);
-    try {
-      await saveGenerationSettings({
-        custom_instruction: customInstruction || null,
-        separate_business_personal: separateBusinessPersonal,
-      });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch {} finally {
-      setGenSettingsLoading(false);
-    }
+  useEffect(() => {
+    if (!genSettingsLoaded.current) return;
+    clearTimeout(genSaveTimer.current);
+    genSaveTimer.current = setTimeout(async () => {
+      try {
+        await saveGenerationSettings({
+          custom_instruction: customInstruction || null,
+          separate_business_personal: separateBusinessPersonal,
+        });
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      } catch {}
+    }, 500);
+    return () => clearTimeout(genSaveTimer.current);
   }, [customInstruction, separateBusinessPersonal]);
 
   function updateChannel(
@@ -181,9 +185,6 @@ export default function Channels() {
               </span>
             </label>
           </div>
-          <button className="gen-settings-save" onClick={handleSaveGenSettings} disabled={genSettingsLoading}>
-            {genSettingsLoading ? 'Saving...' : 'Save'}
-          </button>
         </div>
       </section>
       <div className="channels-list">
