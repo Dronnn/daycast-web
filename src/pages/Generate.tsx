@@ -258,6 +258,7 @@ export default function Generate() {
   }
 
   const skeletonChannels = ["blog", "diary", "tg_personal", "twitter"];
+  const sourceItems = items.filter(i => i.include_in_generation && !i.cleared);
   const hasItems = items.length > 0;
   const showHero = !generating && !currentGen;
   const showSkeleton = generating && !currentGen;
@@ -421,14 +422,14 @@ export default function Generate() {
 
               {error && <p className="generate-error">{error}</p>}
 
-              {/* Source panel */}
-              {showSource && items.length > 0 && (
+              {/* Source panel — only items that were included in generation */}
+              {showSource && sourceItems.length > 0 && (
                 <div className="gen-source-panel">
                   <div className="gen-source-label">
-                    Source — {items.length} item{items.length !== 1 ? "s" : ""}
+                    Source — {sourceItems.length} item{sourceItems.length !== 1 ? "s" : ""}
                   </div>
                   <div className="gen-source-list">
-                    {items.map((item) => (
+                    {sourceItems.map((item) => (
                       <SourceItem key={item.id} item={item} />
                     ))}
                   </div>
