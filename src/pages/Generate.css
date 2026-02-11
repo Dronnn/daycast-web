@@ -304,6 +304,27 @@
   transform: translateY(-1px);
 }
 
+.gen-new-btn {
+  padding: 9px 20px;
+  border-radius: 24px;
+  background: var(--blue);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+.gen-new-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+.gen-new-btn:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 /* Show source button */
 .gen-source-btn {
   padding: 9px 20px;

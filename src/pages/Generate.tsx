@@ -386,7 +386,7 @@ export default function Generate() {
                     </svg>
                     {showSource ? "Hide source" : "Show source"}
                   </button>
-                  <button className="gen-regen-btn" onClick={handleRegenerateAll}>
+                  <button className="gen-regen-btn" onClick={handleRegenerateAll} disabled={generating}>
                     <svg
                       width="15"
                       height="15"
@@ -399,6 +399,21 @@ export default function Generate() {
                       <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
                     </svg>
                     Regenerate All
+                  </button>
+                  <button className="gen-new-btn" onClick={handleGenerate} disabled={generating || !hasItems}>
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                    </svg>
+                    Generate New
                   </button>
                 </div>
               </div>
@@ -434,29 +449,6 @@ export default function Generate() {
                 ))}
               </div>
 
-              {/* Generate more button */}
-              {hasItems && (
-                <div className="gen-more">
-                  <button
-                    className="generate-btn generate-btn--small"
-                    onClick={handleGenerate}
-                    disabled={generating}
-                  >
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="white"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-                    </svg>
-                  </button>
-                </div>
-              )}
             </>
           )}
 
