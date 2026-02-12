@@ -430,18 +430,19 @@
   cursor: default;
 }
 
-/* ── Stars ── */
-.item-stars { display: flex; gap: 2px; margin-top: 4px; }
-.item-stars .star { cursor: pointer; font-size: 14px; color: var(--text4); transition: color 0.15s; }
-.item-stars .star-filled { color: #FFD60A; }
-.item-stars .star:hover { color: #FFD60A; }
+/* ── Flames ── */
+.item-flames { display: flex; align-items: flex-end; gap: 1px; margin-top: 4px; }
+.item-flames .flame { cursor: pointer; transition: opacity 0.15s; line-height: 1; }
+.item-flames .flame-active { opacity: 1; }
+.item-flames .flame-inactive { opacity: 0.25; }
+.item-flames .flame:hover { opacity: 0.8; }
 
 /* ── Excluded item ── */
 .item-excluded .bubble,
 .item-excluded .bubble.link-card,
 .item-excluded .bubble.photo { opacity: 0.35; }
 .item-excluded .item-time { opacity: 0.4; }
-.item-excluded .item-stars { opacity: 0.3; }
+.item-excluded .item-flames { opacity: 0.3; }
 
 /* ── AI pill toggle ── */
 .ai-pill {

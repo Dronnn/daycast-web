@@ -309,13 +309,14 @@
   margin-left: 4px;
 }
 
-/* Importance stars */
+/* Importance flames */
 .hd-importance {
-  display: inline-block;
-  font-size: 12px;
-  color: #ffcc00;
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 1px;
   margin-bottom: 8px;
   margin-left: 6px;
+  line-height: 1;
 }
 
 /* Publish */

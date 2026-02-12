@@ -354,15 +354,16 @@ export default function Feed() {
                   <div className="bubble">{item.content}</div>
                 )}
 
-                {/* Star rating */}
-                <div className="item-stars" onClick={e => e.stopPropagation()}>
-                  {[1,2,3,4,5].map(n => (
+                {/* Flame rating */}
+                <div className="item-flames" onClick={e => e.stopPropagation()}>
+                  {[1,2,3,4,5].map((n, i) => (
                     <span
                       key={n}
-                      className={`star ${(item.importance || 0) >= n ? 'star-filled' : ''}`}
+                      className={`flame ${(item.importance || 0) >= n ? 'flame-active' : 'flame-inactive'}`}
+                      style={{ fontSize: `${10 + i * 3}px` }}
                       onClick={() => handleSetImportance(item.id, item.importance === n ? null : n)}
                     >
-                      {(item.importance || 0) >= n ? '\u2605' : '\u2606'}
+                      🔥
                     </span>
                   ))}
                 </div>

@@ -214,7 +214,9 @@ export default function HistoryDetail() {
                 )}
                 {item.importance != null && item.importance > 0 && (
                   <span className="hd-importance">
-                    {'★'.repeat(item.importance)}
+                    {Array.from({ length: item.importance }, (_, i) => (
+                      <span key={i} style={{ fontSize: `${10 + i * 3}px` }}>🔥</span>
+                    ))}
                   </span>
                 )}
                 {item.type === "image" ? (
