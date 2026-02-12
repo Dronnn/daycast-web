@@ -143,6 +143,7 @@ export default function Feed() {
         type,
         content: value,
         date,
+        importance: 5,
       });
       setItems((prev) => [...prev, item]);
       setText("");
@@ -158,6 +159,7 @@ export default function Feed() {
     const form = new FormData();
     form.append("file", file);
     form.append("date", date);
+    form.append("importance", "5");
     try {
       const item = await api.post<InputItem>("/inputs/upload", form);
       setItems((prev) => [...prev, item]);
@@ -234,7 +236,7 @@ export default function Feed() {
       e.dataTransfer.getData("text/plain");
     if (url && URL_RE.test(url.trim())) {
       api
-        .post<InputItem>("/inputs", { type: "url", content: url.trim(), date })
+        .post<InputItem>("/inputs", { type: "url", content: url.trim(), date, importance: 5 })
         .then((item) => setItems((prev) => [...prev, item]));
     }
   }
