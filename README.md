@@ -6,7 +6,7 @@ Built with React 19, TypeScript, Vite, and React Router.
 
 ## Pages
 
-- **Feed** — chat-like input stream. Add text, links (with URL extraction), and photos. Edit and delete items. Flame importance rating (1–5, progressive-size flame icons replacing the old star rating). AI toggle to include/exclude items from generation. Edit history viewer. Export day as text. Publish input items directly. Drag & drop support. "Clear day" soft-deletes all items.
+- **Feed** — chat-like input stream. Add text, links (with URL extraction), and photos. Edit and delete items. Flame importance rating (1–5, progressive-size flame icons with spring animations). AI toggle to include/exclude items from generation. Edit history popover via right-click (desktop) or long-press (mobile). Export day as text. Publish input items directly. Drag & drop support with animated border. "Clear day" soft-deletes all items.
 - **Generate** — trigger AI generation for all active channels. View results as cards with Copy button. Regenerate per-channel or all. Generate New button for fresh generation with updated settings. Switch between multiple generations per day. Publish/unpublish results to the public blog.
 - **Channels** — configure which channels are active. Set default style, language, and output length per channel. Generation settings: custom AI instruction and separate business/personal toggle. All settings auto-save on change (debounced).
 - **History** — browse past days with search. Click into a day to see all inputs (with cleared/edited badges) and all generations. Copy any result. View edit history for modified items. Publish/unpublish from history detail.
@@ -18,7 +18,8 @@ Built with React 19, TypeScript, Vite, and React Router.
 - **TypeScript 5.7**
 - **Vite 6** — dev server with API proxy, production builds
 - **React Router 7** — client-side routing
-- **CSS** — custom styles (no framework), CSS variables for theming
+- **Framer Motion** — spring physics, scroll-triggered reveals, page transitions, micro-interactions
+- **CSS** — custom styles (no framework), CSS variables for theming, glassmorphism, gradient mesh backgrounds
 
 ## Project Structure
 
