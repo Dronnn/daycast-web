@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, publishPost, unpublishPost, getPublishStatus } from "../api/client";
 import type {
   DayResponse,
@@ -6,6 +6,7 @@ import type {
   GenerationResult,
   InputItem,
 } from "../types";
+import { motion, AnimatePresence, useInView } from "framer-motion";
 import "./Generate.css";
 
 function todayISO(): string {
@@ -44,7 +45,22 @@ function channelMeta(id: string) {
   return CHANNEL_META[id] ?? { letter: id[0]?.toUpperCase(), css: "", name: id };
 }
 
-/* ── Skeleton card ── */
+const cardVariants = {
+  initial: { opacity: 0, y: 30, scale: 0.96 },
+  animate: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: "spring" as const,
+      stiffness: 260,
+      damping: 20,
+      delay: i * 0.08,
+    },
+  }),
+};
+
+/* -- Skeleton card -- */
 function SkeletonCard({ channel }: { channel: string }) {
   const m = channelMeta(channel);
   return (
@@ -67,9 +83,10 @@ function SkeletonCard({ channel }: { channel: string }) {
   );
 }
 
-/* ── Result card ── */
+/* -- Result card -- */
 function ResultCard({
   result,
+  index,
   onRegenerate,
   regenerating,
   publishedPostId,
@@ -77,6 +94,7 @@ function ResultCard({
   onUnpublish,
 }: {
   result: GenerationResult;
+  index: number;
   onRegenerate: (channelId: string) => void;
   regenerating: boolean;
   publishedPostId: string | null | undefined;
@@ -85,6 +103,8 @@ function ResultCard({
 }) {
   const m = channelMeta(result.channel_id);
   const [copied, setCopied] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(cardRef, { once: true, margin: "-50px" });
 
   function handleCopy() {
     copyText(result.text);
@@ -93,7 +113,17 @@ function ResultCard({
   }
 
   return (
-    <div className="gen-card">
+    <motion.div
+      ref={cardRef}
+      className="gen-card"
+      variants={cardVariants}
+      initial="initial"
+      animate={isInView ? "animate" : "initial"}
+      custom={index}
+      whileHover={{ y: -4, scale: 1.01 }}
+      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+    >
+      <div className="gen-card-accent" data-channel={result.channel_id} />
       <div className="gen-card-head">
         <div className={`gen-card-icon ${m.css}`}>{m.letter}</div>
         <div>
@@ -107,34 +137,51 @@ function ResultCard({
         <div className="gen-card-text">{result.text}</div>
       </div>
       <div className="gen-card-foot">
-        <button className="gen-card-btn main" onClick={handleCopy}>
+        <motion.button
+          className="gen-card-btn main"
+          onClick={handleCopy}
+          whileTap={{ scale: 0.93 }}
+          transition={{ type: "spring", stiffness: 400, damping: 15 }}
+        >
           {copied ? "Copied!" : "Copy"}
-        </button>
-        <button
+        </motion.button>
+        <motion.button
           className="gen-card-btn sec"
           onClick={() => onRegenerate(result.channel_id)}
           disabled={regenerating}
+          whileTap={{ scale: 0.93 }}
+          transition={{ type: "spring", stiffness: 400, damping: 15 }}
         >
           Regenerate
-        </button>
+        </motion.button>
         {publishedPostId ? (
           <>
             <span className="gen-card-badge published">Published</span>
-            <button className="gen-card-btn unpublish" onClick={() => onUnpublish(result.id)}>
+            <motion.button
+              className="gen-card-btn unpublish"
+              onClick={() => onUnpublish(result.id)}
+              whileTap={{ scale: 0.93 }}
+              transition={{ type: "spring", stiffness: 400, damping: 15 }}
+            >
               Unpublish
-            </button>
+            </motion.button>
           </>
         ) : (
-          <button className="gen-card-btn publish" onClick={() => onPublish(result.id)}>
+          <motion.button
+            className="gen-card-btn publish"
+            onClick={() => onPublish(result.id)}
+            whileTap={{ scale: 0.93 }}
+            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+          >
             Publish
-          </button>
+          </motion.button>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
-/* ── Source item ── */
+/* -- Source item -- */
 function SourceItem({ item }: { item: InputItem }) {
   return (
     <div className="source-item">
@@ -146,7 +193,7 @@ function SourceItem({ item }: { item: InputItem }) {
   );
 }
 
-/* ── Main page ── */
+/* -- Main page -- */
 export default function Generate() {
   const [items, setItems] = useState<InputItem[]>([]);
   const [generations, setGenerations] = useState<Generation[]>([]);
@@ -168,7 +215,7 @@ export default function Generate() {
         setGenIdx(day.generations.length - 1);
       }
     } catch {
-      // no data yet — that's fine
+      // no data yet
     } finally {
       setLoading(false);
     }
@@ -213,7 +260,7 @@ export default function Generate() {
     try {
       const gen = await api.post<Generation>("/generate", { date });
       setGenerations((prev) => [...prev, gen]);
-      setGenIdx(generations.length); // point to the new one
+      setGenIdx(generations.length);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Generation failed");
     } finally {
@@ -272,77 +319,109 @@ export default function Generate() {
     <div className="generate-page">
       <div className="generate-scroll">
         <div className="generate-content">
-          {/* ── Hero ── */}
-          {showHero && (
-            <div className="generate-hero">
-              <div className="generate-glow" />
-              <div className="generate-badge">
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-                </svg>
-                {items.length} item{items.length !== 1 ? "s" : ""} ready
-              </div>
-              <h1 className="generate-title">
-                Turn your day into{" "}
-                <span className="generate-title-gradient">content</span>.
-              </h1>
-              <p className="generate-desc">
-                {hasItems
-                  ? "Transform today's thoughts, links, and photos into polished posts for every channel you care about."
-                  : "Add some thoughts, links, or photos to your feed first, then come back to generate."}
-              </p>
-              <button
-                className="generate-btn"
-                onClick={handleGenerate}
-                disabled={!hasItems}
+          {/* -- Hero -- */}
+          <AnimatePresence mode="wait">
+            {showHero && (
+              <motion.div
+                className="generate-hero"
+                key="hero"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ type: "spring", stiffness: 200, damping: 20 }}
               >
-                <svg
-                  width="36"
-                  height="36"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="white"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                <div className="generate-glow" />
+                <motion.div
+                  className="generate-badge"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.1, type: "spring", stiffness: 300 }}
                 >
-                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-                </svg>
-              </button>
-              {error && <p className="generate-error">{error}</p>}
-            </div>
-          )}
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                  </svg>
+                  {items.length} item{items.length !== 1 ? "s" : ""} ready
+                </motion.div>
+                <h1 className="generate-title">
+                  Turn your day into{" "}
+                  <span className="generate-title-gradient">content</span>.
+                </h1>
+                <p className="generate-desc">
+                  {hasItems
+                    ? "Transform today's thoughts, links, and photos into polished posts for every channel you care about."
+                    : "Add some thoughts, links, or photos to your feed first, then come back to generate."}
+                </p>
+                <motion.button
+                  className="generate-btn"
+                  onClick={handleGenerate}
+                  disabled={!hasItems}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                >
+                  <svg
+                    width="36"
+                    height="36"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                  </svg>
+                </motion.button>
+                {error && <p className="generate-error">{error}</p>}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          {/* ── Skeleton ── */}
-          {showSkeleton && (
-            <div className="generate-skeleton">
-              <div className="generate-btn generate-btn--spinning">
-                <div className="spinner" />
-              </div>
-              <div className="gen-cards">
-                {skeletonChannels.map((ch) => (
-                  <SkeletonCard key={ch} channel={ch} />
-                ))}
-              </div>
-            </div>
-          )}
+          {/* -- Skeleton -- */}
+          <AnimatePresence>
+            {showSkeleton && (
+              <motion.div
+                className="generate-skeleton"
+                key="skeleton"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <div className="generate-btn generate-btn--spinning">
+                  <div className="spinner" />
+                </div>
+                <div className="gen-cards">
+                  {skeletonChannels.map((ch) => (
+                    <SkeletonCard key={ch} channel={ch} />
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          {/* ── Results ── */}
+          {/* -- Results -- */}
           {showResults && (
             <>
-              <div className="gen-actions-bar">
-                  <button
+              <motion.div
+                className="gen-actions-bar"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1, type: "spring", stiffness: 200, damping: 20 }}
+              >
+                  <motion.button
                     className="gen-source-btn"
                     onClick={() => setShowSource((s) => !s)}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 15 }}
                   >
                     <svg
                       width="15"
@@ -358,8 +437,14 @@ export default function Generate() {
                       <circle cx="12" cy="12" r="3" />
                     </svg>
                     {showSource ? "Hide source" : "Show source"}
-                  </button>
-                  <button className="gen-regen-btn" onClick={handleRegenerateAll} disabled={generating}>
+                  </motion.button>
+                  <motion.button
+                    className="gen-regen-btn"
+                    onClick={handleRegenerateAll}
+                    disabled={generating}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                  >
                     <svg
                       width="15"
                       height="15"
@@ -372,8 +457,14 @@ export default function Generate() {
                       <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
                     </svg>
                     Regenerate All
-                  </button>
-                  <button className="gen-new-btn" onClick={handleGenerate} disabled={generating || !hasItems}>
+                  </motion.button>
+                  <motion.button
+                    className="gen-new-btn"
+                    onClick={handleGenerate}
+                    disabled={generating || !hasItems}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                  >
                     <svg
                       width="15"
                       height="15"
@@ -387,10 +478,15 @@ export default function Generate() {
                       <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
                     </svg>
                     Generate New
-                  </button>
-              </div>
+                  </motion.button>
+              </motion.div>
 
-              <div className="gen-results-header">
+              <motion.div
+                className="gen-results-header"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15, type: "spring", stiffness: 200, damping: 20 }}
+              >
                 <div>
                   <p className="gen-results-label">
                     Generation #{genIdx + 1}
@@ -418,30 +514,39 @@ export default function Generate() {
                   </p>
                   <h2 className="gen-results-title">Your Content</h2>
                 </div>
-              </div>
+              </motion.div>
 
               {error && <p className="generate-error">{error}</p>}
 
-              {/* Source panel — only items that were included in generation */}
-              {showSource && sourceItems.length > 0 && (
-                <div className="gen-source-panel">
-                  <div className="gen-source-label">
-                    Source — {sourceItems.length} item{sourceItems.length !== 1 ? "s" : ""}
-                  </div>
-                  <div className="gen-source-list">
-                    {sourceItems.map((item) => (
-                      <SourceItem key={item.id} item={item} />
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Source panel */}
+              <AnimatePresence>
+                {showSource && sourceItems.length > 0 && (
+                  <motion.div
+                    className="gen-source-panel"
+                    initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                    animate={{ opacity: 1, height: "auto", marginBottom: 28 }}
+                    exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  >
+                    <div className="gen-source-label">
+                      Source — {sourceItems.length} item{sourceItems.length !== 1 ? "s" : ""}
+                    </div>
+                    <div className="gen-source-list">
+                      {sourceItems.map((item) => (
+                        <SourceItem key={item.id} item={item} />
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Cards */}
               <div className="gen-cards">
-                {currentGen.results.map((result) => (
+                {currentGen.results.map((result, i) => (
                   <ResultCard
                     key={result.id}
                     result={result}
+                    index={i}
                     onRegenerate={handleRegenerateChannel}
                     regenerating={generating}
                     publishedPostId={publishStatus[result.id]}
@@ -454,7 +559,7 @@ export default function Generate() {
             </>
           )}
 
-          {/* ── Generating overlay on results ── */}
+          {/* -- Generating overlay on results -- */}
           {generating && currentGen && (
             <>
               <div className="gen-results-header" style={{ opacity: 0.5 }}>

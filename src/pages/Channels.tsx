@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, getGenerationSettings, saveGenerationSettings } from "../api/client";
 import type { ChannelSetting } from "../types";
+import { motion, AnimatePresence } from "framer-motion";
 import "./Channels.css";
 
 const CHANNELS = [
@@ -64,10 +65,26 @@ function buildDefaults(): LocalSettings {
   return m;
 }
 
+const channelVariants = {
+  initial: { opacity: 0, y: 20, scale: 0.98 },
+  animate: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: "spring" as const,
+      stiffness: 260,
+      damping: 20,
+      delay: i * 0.06,
+    },
+  }),
+};
+
 export default function Channels() {
   const [settings, setSettings] = useState<LocalSettings>(buildDefaults);
   const [customInstruction, setCustomInstruction] = useState('');
   const [separateBusinessPersonal, setSeparateBusinessPersonal] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const channelsLoaded = useRef(false);
   const channelSaveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const genSettingsLoaded = useRef(false);
@@ -111,13 +128,18 @@ export default function Channels() {
   useEffect(() => {
     if (!genSettingsLoaded.current) return;
     clearTimeout(genSaveTimer.current);
+    setSaveStatus("saving");
     genSaveTimer.current = setTimeout(async () => {
       try {
         await saveGenerationSettings({
           custom_instruction: customInstruction || null,
           separate_business_personal: separateBusinessPersonal,
         });
-      } catch {}
+        setSaveStatus("saved");
+        setTimeout(() => setSaveStatus("idle"), 1500);
+      } catch {
+        setSaveStatus("idle");
+      }
     }, 500);
     return () => clearTimeout(genSaveTimer.current);
   }, [customInstruction, separateBusinessPersonal]);
@@ -125,6 +147,7 @@ export default function Channels() {
   useEffect(() => {
     if (!channelsLoaded.current) return;
     clearTimeout(channelSaveTimer.current);
+    setSaveStatus("saving");
     channelSaveTimer.current = setTimeout(async () => {
       try {
         const channels = Object.entries(settings).map(([channel_id, s]) => ({
@@ -132,7 +155,11 @@ export default function Channels() {
           ...s,
         }));
         await api.post("/settings/channels", { channels });
-      } catch {}
+        setSaveStatus("saved");
+        setTimeout(() => setSaveStatus("idle"), 1500);
+      } catch {
+        setSaveStatus("idle");
+      }
     }, 500);
     return () => clearTimeout(channelSaveTimer.current);
   }, [settings]);
@@ -150,12 +177,45 @@ export default function Channels() {
 
   return (
     <div className="channels-page">
-      <h1 className="channels-title">Channels</h1>
-      <p className="channels-desc">
+      <motion.h1
+        className="channels-title"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 200, damping: 20 }}
+      >
+        Channels
+      </motion.h1>
+      <motion.p
+        className="channels-desc"
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.05 }}
+      >
         Choose which channels to generate content for and set default style,
         language, and length.
-      </p>
-      <section className="gen-settings-section">
+      </motion.p>
+
+      {/* Save status indicator */}
+      <AnimatePresence>
+        {saveStatus !== "idle" && (
+          <motion.div
+            className="save-indicator save-indicator--visible"
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          >
+            {saveStatus === "saving" ? "Saving..." : "Saved"}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <motion.section
+        className="gen-settings-section"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.1 }}
+      >
         <h3 className="gen-settings-title">Generation Settings</h3>
         <div className="gen-settings-card">
           <div className="gen-setting-row">
@@ -182,21 +242,30 @@ export default function Channels() {
             </label>
           </div>
         </div>
-      </section>
+      </motion.section>
       <div className="channels-list">
-        {CHANNELS.map((ch) => {
+        {CHANNELS.map((ch, i) => {
           const s = settings[ch.id];
           return (
-            <div
+            <motion.div
               key={ch.id}
               className={`channel-row ${!s.is_active ? "channel-row--off" : ""}`}
+              variants={channelVariants}
+              initial="initial"
+              animate="animate"
+              custom={i}
+              whileHover={{ x: 4 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
             >
-              <div
+              <div className="channel-accent" style={{ background: ch.gradient }} />
+              <motion.div
                 className="channel-icon"
                 style={{ background: ch.gradient }}
+                whileTap={{ scale: 0.92 }}
+                transition={{ type: "spring", stiffness: 400, damping: 15 }}
               >
                 {ch.letter}
-              </div>
+              </motion.div>
               <div className="channel-info">
                 <div className="channel-name">{ch.name}</div>
                 <div className="channel-desc">{ch.desc}</div>
@@ -254,7 +323,7 @@ export default function Channels() {
                   </span>
                 </label>
               </div>
-            </div>
+            </motion.div>
           );
         })}
       </div>

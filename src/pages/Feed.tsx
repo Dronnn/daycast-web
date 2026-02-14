@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, publishInputItem, unpublishPost, getInputPublishStatus, exportDay } from "../api/client";
-import type { InputItem, DayResponse } from "../types";
+import type { InputItem, InputItemEdit, DayResponse } from "../types";
+import { motion, AnimatePresence } from "framer-motion";
 import "./Feed.css";
 
 function todayISO(): string {
@@ -33,6 +34,17 @@ function getDomain(url: string): string {
 
 const URL_RE = /^https?:\/\/.+/i;
 
+const itemVariants = {
+  initial: { opacity: 0, y: 24, scale: 0.96 },
+  animate: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { type: "spring" as const, stiffness: 280, damping: 22 },
+  },
+  exit: { opacity: 0, scale: 0.94, transition: { duration: 0.2 } },
+};
+
 export default function Feed() {
   const [items, setItems] = useState<InputItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,8 +54,16 @@ export default function Feed() {
   const [editText, setEditText] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [expandedEdits, setExpandedEdits] = useState<Set<string>>(new Set());
-  const [publishedMap, setPublishedMap] = useState<Record<string, string>>({}); // input_item_id -> post_id
+  const [publishedMap, setPublishedMap] = useState<Record<string, string>>({});
+
+  // Edit history popover state
+  const [editPopover, setEditPopover] = useState<{
+    edits: InputItemEdit[];
+    position: { x: number; y: number } | null; // null = centered (mobile)
+  } | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressItem = useRef<string | null>(null);
+  const [longPressActive, setLongPressActive] = useState<string | null>(null);
 
   const listRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -76,7 +96,6 @@ export default function Feed() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [items.length]);
 
-  // Fetch publish status for text items
   useEffect(() => {
     const textIds = items.filter(i => i.type === "text").map(i => i.id);
     if (textIds.length === 0) return;
@@ -210,6 +229,70 @@ export default function Feed() {
     }
   }
 
+  // ── Edit history popover handlers ──
+
+  function openEditPopover(edits: InputItemEdit[], position: { x: number; y: number } | null) {
+    setEditPopover({ edits, position });
+  }
+
+  function closeEditPopover() {
+    setEditPopover(null);
+  }
+
+  function handleItemContextMenu(e: React.MouseEvent, item: InputItem) {
+    if (!item.edits || item.edits.length === 0) return; // let browser handle normal items
+    e.preventDefault();
+    openEditPopover(item.edits, { x: e.clientX, y: e.clientY });
+  }
+
+  function handleTouchStart(item: InputItem) {
+    if (!item.edits || item.edits.length === 0) return;
+    longPressItem.current = item.id;
+    setLongPressActive(item.id);
+    longPressTimer.current = setTimeout(() => {
+      openEditPopover(item.edits!, null); // null = centered for mobile
+      longPressItem.current = null;
+      setLongPressActive(null);
+    }, 500);
+  }
+
+  function handleTouchEnd() {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    setLongPressActive(null);
+    longPressItem.current = null;
+  }
+
+  function handleTouchMove() {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    setLongPressActive(null);
+    longPressItem.current = null;
+  }
+
+  // Close popover on Escape
+  useEffect(() => {
+    if (!editPopover) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") closeEditPopover();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [editPopover]);
+
+  function formatEditTime(iso: string): string {
+    const d = new Date(iso);
+    const now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+    const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    if (isToday) return `Today at ${time}`;
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) + ` at ${time}`;
+  }
+
   function handleDragOver(e: React.DragEvent) {
     e.preventDefault();
     setDragOver(true);
@@ -254,18 +337,32 @@ export default function Feed() {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {dragOver && (
-        <div className="feed-drop-overlay">
-          <div className="feed-drop-card">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-            <span>Drop links or photos here</span>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {dragOver && (
+          <motion.div
+            className="feed-drop-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <motion.div
+              className="feed-drop-card"
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.85, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            >
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <span>Drop links or photos here</span>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="feed-header">
         <span className="feed-date">Today, {formatFeedDate()}</span>
@@ -285,187 +382,230 @@ export default function Feed() {
             <p className="feed-empty-text">Loading...</p>
           </div>
         ) : items.length === 0 ? (
-          <div className="feed-empty">
+          <motion.div
+            className="feed-empty"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 200, damping: 20 }}
+          >
             <p className="feed-empty-text">No items yet today.</p>
             <p className="feed-empty-hint">
               Add text, links, or photos below to get started.
             </p>
-          </div>
+          </motion.div>
         ) : (
           <div className="feed-items">
-            {items.map((item) => (
-              <div key={item.id} className={`item${!item.include_in_generation ? ' item-excluded' : ''}`}>
-                {editingId === item.id ? (
-                  <div className="edit-bubble">
-                    <input
-                      className="edit-input"
-                      value={editText}
-                      onChange={(e) => setEditText(e.target.value)}
-                      onKeyDown={(e) => handleEditKeyDown(e, item.id)}
-                      autoFocus
-                    />
-                    <div className="edit-actions">
-                      <button
-                        className="edit-save"
-                        onClick={() => handleEdit(item.id)}
-                      >
-                        Save
-                      </button>
-                      <button
-                        className="edit-cancel"
-                        onClick={() => setEditingId(null)}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : item.type === "url" ? (
-                  <a
-                    href={item.content}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bubble link-card"
-                  >
-                    <div className="link-img">
-                      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                      </svg>
-                    </div>
-                    <div className="link-content">
-                      <div className="link-domain">
-                        {getDomain(item.content)}
+            <AnimatePresence initial={false}>
+              {items.map((item) => (
+                <motion.div
+                  key={item.id}
+                  className={`item${!item.include_in_generation ? ' item-excluded' : ''}${longPressActive === item.id ? ' item-longpress' : ''}`}
+                  variants={itemVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  layout
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                  whileHover={{ scale: 1.01 }}
+                  onContextMenu={(e) => handleItemContextMenu(e, item)}
+                  onTouchStart={() => handleTouchStart(item)}
+                  onTouchEnd={handleTouchEnd}
+                  onTouchMove={handleTouchMove}
+                >
+                  {editingId === item.id ? (
+                    <div className="edit-bubble">
+                      <input
+                        className="edit-input"
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                        onKeyDown={(e) => handleEditKeyDown(e, item.id)}
+                        autoFocus
+                      />
+                      <div className="edit-actions">
+                        <motion.button
+                          className="edit-save"
+                          onClick={() => handleEdit(item.id)}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          Save
+                        </motion.button>
+                        <motion.button
+                          className="edit-cancel"
+                          onClick={() => setEditingId(null)}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          Cancel
+                        </motion.button>
                       </div>
-                      <div className="link-title">{item.content}</div>
-                      {item.extracted_text && (
-                        <div className="link-desc">{item.extracted_text}</div>
-                      )}
                     </div>
-                  </a>
-                ) : item.type === "image" ? (
-                  <div className="bubble photo">
-                    <img
-                      className="photo-img"
-                      src={`/api/v1/uploads/${item.content}`}
-                      alt="Uploaded"
-                    />
-                  </div>
-                ) : (
-                  <div className="bubble">{item.content}</div>
-                )}
-
-                {/* Flame rating */}
-                <div className="item-flames" onClick={e => e.stopPropagation()}>
-                  {[1,2,3,4,5].map((n, i) => (
-                    <span
-                      key={n}
-                      className={`flame ${(item.importance || 0) >= n ? 'flame-active' : 'flame-inactive'}`}
-                      style={{ fontSize: `${10 + i * 3}px` }}
-                      onClick={() => handleSetImportance(item.id, item.importance === n ? null : n)}
+                  ) : item.type === "url" ? (
+                    <a
+                      href={item.content}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bubble link-card"
                     >
-                      🔥
+                      <div className="link-img">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                        </svg>
+                      </div>
+                      <div className="link-content">
+                        <div className="link-domain">
+                          {getDomain(item.content)}
+                        </div>
+                        <div className="link-title">{item.content}</div>
+                        {item.extracted_text && (
+                          <div className="link-desc">{item.extracted_text}</div>
+                        )}
+                      </div>
+                    </a>
+                  ) : item.type === "image" ? (
+                    <div className="bubble photo">
+                      <img
+                        className="photo-img"
+                        src={`/api/v1/uploads/${item.content}`}
+                        alt="Uploaded"
+                      />
+                    </div>
+                  ) : (
+                    <div className="bubble">{item.content}</div>
+                  )}
+
+                  {/* Flame rating */}
+                  <div className="item-flames" onClick={e => e.stopPropagation()}>
+                    {[1,2,3,4,5].map((n, i) => (
+                      <motion.span
+                        key={n}
+                        className={`flame ${(item.importance || 0) >= n ? 'flame-active' : 'flame-inactive'}`}
+                        style={{ fontSize: `${10 + i * 3}px` }}
+                        onClick={() => handleSetImportance(item.id, item.importance === n ? null : n)}
+                        whileHover={{ scale: 1.3 }}
+                        whileTap={{ scale: 0.8 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                      >
+                        🔥
+                      </motion.span>
+                    ))}
+                  </div>
+
+                  {/* Edit history badge — click to open popover */}
+                  {item.edits && item.edits.length > 0 && (
+                    <div className="edit-history-section">
+                      <button
+                        className="edited-badge"
+                        onClick={(e) => {
+                          const rect = (e.target as HTMLElement).getBoundingClientRect();
+                          openEditPopover(item.edits!, { x: rect.left + rect.width / 2, y: rect.bottom + 8 });
+                        }}
+                      >
+                        Edited ({item.edits.length})
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="item-meta">
+                    <span className="item-time">
+                      {formatTime(item.created_at)}
                     </span>
-                  ))}
-                </div>
-
-                {/* Edit history */}
-                {item.edits && item.edits.length > 0 && (
-                  <div className="edit-history-section">
-                    <button
-                      className="edited-badge"
-                      onClick={() => setExpandedEdits(prev => {
-                        const next = new Set(prev);
-                        next.has(item.id) ? next.delete(item.id) : next.add(item.id);
-                        return next;
-                      })}
-                    >
-                      Edited ({item.edits.length})
-                    </button>
-                    {expandedEdits.has(item.id) && (
-                      <div className="edit-history-list">
-                        {item.edits.map(edit => (
-                          <div key={edit.id} className="edit-entry">
-                            <div className="edit-old-content">{edit.old_content}</div>
-                            <div className="edit-time">{formatTime(edit.edited_at)}</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="item-meta">
-                  <span className="item-time">
-                    {formatTime(item.created_at)}
-                  </span>
-                  <div className="item-actions">
-                    <button
-                      className={`ai-pill ${!item.include_in_generation ? 'ai-pill--off' : ''}`}
-                      title={item.include_in_generation ? 'Included in AI generation' : 'Excluded from AI generation'}
-                      onClick={() => handleToggleGeneration(item.id, !item.include_in_generation)}
-                    >
-                      AI
-                    </button>
-                    {item.type === 'text' && (
-                      <button
-                        className={`item-act ${publishedMap[item.id] ? 'unpublish-btn' : 'publish-btn'}`}
-                        onClick={() => handleTogglePublish(item.id)}
-                        title={publishedMap[item.id] ? 'Unpublish' : 'Publish'}
+                    <div className="item-actions">
+                      <motion.button
+                        className={`ai-pill ${!item.include_in_generation ? 'ai-pill--off' : ''}`}
+                        title={item.include_in_generation ? 'Included in AI generation' : 'Excluded from AI generation'}
+                        onClick={() => handleToggleGeneration(item.id, !item.include_in_generation)}
+                        whileTap={{ scale: 0.9 }}
                       >
-                        {publishedMap[item.id] ? 'Unpublish' : 'Publish'}
-                      </button>
-                    )}
-                    {item.type !== "image" && (
-                      <button
-                        className="item-act"
-                        onClick={() => startEdit(item)}
+                        AI
+                      </motion.button>
+                      {item.type === 'text' && (
+                        <motion.button
+                          className={`item-act ${publishedMap[item.id] ? 'unpublish-btn' : 'publish-btn'}`}
+                          onClick={() => handleTogglePublish(item.id)}
+                          title={publishedMap[item.id] ? 'Unpublish' : 'Publish'}
+                          whileTap={{ scale: 0.9 }}
+                        >
+                          {publishedMap[item.id] ? 'Unpublish' : 'Publish'}
+                        </motion.button>
+                      )}
+                      {item.type !== "image" && (
+                        <motion.button
+                          className="item-act"
+                          onClick={() => startEdit(item)}
+                          whileTap={{ scale: 0.9 }}
+                        >
+                          Edit
+                        </motion.button>
+                      )}
+                      <motion.button
+                        className="item-act item-act--delete"
+                        onClick={() => handleDelete(item.id)}
+                        whileTap={{ scale: 0.9 }}
                       >
-                        Edit
-                      </button>
-                    )}
-                    <button
-                      className="item-act item-act--delete"
-                      onClick={() => handleDelete(item.id)}
-                    >
-                      Delete
-                    </button>
+                        Delete
+                      </motion.button>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                </motion.div>
+              ))}
+            </AnimatePresence>
             <div ref={bottomRef} />
           </div>
         )}
       </div>
 
-      {error && <div style={{color: error.startsWith("Published") || error.startsWith("Unpublished") || error.startsWith("Copied") ? "#34C759" : "#e74c3c",textAlign:"center",padding:"8px",fontSize:"14px"}}>{error}</div>}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            style={{
+              color: error.startsWith("Published") || error.startsWith("Unpublished") || error.startsWith("Copied") ? "#34C759" : "#e74c3c",
+              textAlign: "center",
+              padding: "8px",
+              fontSize: "14px",
+            }}
+          >
+            {error}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="composer">
         <div className="composer-inner">
           <div className="composer-tools">
-            <button
+            <motion.button
               className="tool-btn"
               title="Add link"
               onClick={() => {
                 setText("https://");
                 inputRef.current?.focus();
               }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.85 }}
+              transition={{ type: "spring", stiffness: 400, damping: 15 }}
             >
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
               </svg>
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               className="tool-btn"
               title="Add photo"
               onClick={() => fileRef.current?.click()}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.85 }}
+              transition={{ type: "spring", stiffness: 400, damping: 15 }}
             >
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                 <circle cx="8.5" cy="8.5" r="1.5" />
                 <polyline points="21 15 16 10 5 21" />
               </svg>
-            </button>
+            </motion.button>
             <input
               ref={fileRef}
               type="file"
@@ -484,19 +624,73 @@ export default function Feed() {
             onKeyDown={handleKeyDown}
             disabled={sending}
           />
-          <button
+          <motion.button
             className="send-btn"
             title="Send"
             onClick={handleSend}
             disabled={!text.trim() || sending}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.85 }}
+            transition={{ type: "spring", stiffness: 400, damping: 15 }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="19" x2="12" y2="5" />
               <polyline points="5 12 12 5 19 12" />
             </svg>
-          </button>
+          </motion.button>
         </div>
       </div>
+
+      {/* ── Edit History Popover ── */}
+      <AnimatePresence>
+        {editPopover && (
+          <>
+            <motion.div
+              className="edit-popover-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={closeEditPopover}
+            />
+            <motion.div
+              className="edit-popover"
+              style={
+                editPopover.position
+                  ? {
+                      position: "fixed",
+                      left: Math.min(editPopover.position.x, window.innerWidth - 320),
+                      top: Math.min(editPopover.position.y, window.innerHeight - 300),
+                    }
+                  : {
+                      position: "fixed",
+                      left: "50%",
+                      top: "50%",
+                      transform: "translate(-50%, -50%)",
+                    }
+              }
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 400, damping: 28 }}
+            >
+              <div className="edit-popover-header">
+                <span className="edit-popover-title">Edit History</span>
+                <span className="edit-popover-count">{editPopover.edits.length} {editPopover.edits.length === 1 ? "edit" : "edits"}</span>
+              </div>
+              <div className="edit-popover-list">
+                {editPopover.edits.map((edit, idx) => (
+                  <div key={edit.id} className="edit-popover-entry">
+                    <div className="edit-popover-content">{edit.old_content}</div>
+                    <div className="edit-popover-time">{formatEditTime(edit.edited_at)}</div>
+                    {idx < editPopover.edits.length - 1 && <div className="edit-popover-separator" />}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

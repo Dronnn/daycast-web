@@ -1,28 +1,54 @@
 /* ═══════════════════════════════════════════
-   Channels — Configuration & channel list
+   Channels — Design V2
+   Colored accents, spring toggles, auto-save
    ═══════════════════════════════════════════ */
 
 .channels-page {
-  max-width: 720px;
+  max-width: 760px;
   margin: 0 auto;
   padding: 60px 36px;
-  animation: reveal-up 0.5s var(--ease-out);
+  position: relative;
 }
 
 .channels-title {
   font-family: var(--font-heading);
-  font-size: 42px;
+  font-size: 48px;
   font-weight: 800;
   letter-spacing: -0.045em;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .channels-desc {
-  font-size: 17px;
+  font-size: 18px;
   color: var(--text2);
   margin-bottom: 44px;
   letter-spacing: -0.01em;
   line-height: 1.55;
+}
+
+/* ── Save indicator ── */
+.save-indicator {
+  position: fixed;
+  top: 80px;
+  right: 32px;
+  font-family: var(--font-heading);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green);
+  background: var(--green-bg);
+  padding: 8px 18px;
+  border-radius: var(--radius-full);
+  z-index: 200;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duration-normal) var(--ease-smooth);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 12px rgba(48, 209, 88, 0.15);
+}
+
+.save-indicator--visible {
+  opacity: 1;
 }
 
 /* ── Generation Settings ── */
@@ -32,9 +58,9 @@
 
 .gen-settings-title {
   font-family: var(--font-heading);
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   letter-spacing: -0.02em;
 }
 
@@ -42,8 +68,21 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
-  padding: 24px;
-  box-shadow: var(--shadow-sm);
+  padding: 28px;
+  box-shadow: var(--glow-card);
+  transition: box-shadow var(--duration-normal) var(--ease-smooth),
+              border-color var(--duration-normal) var(--ease-smooth);
+}
+
+.gen-settings-card:hover {
+  box-shadow: var(--glow-card-hover);
+  border-color: rgba(0, 113, 227, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .gen-settings-card:hover {
+    border-color: rgba(10, 132, 255, 0.15);
+  }
 }
 
 .gen-setting-row {
@@ -61,10 +100,10 @@
 
 .gen-setting-textarea {
   width: 100%;
-  padding: 12px 16px;
+  padding: 14px 18px;
   border: 1.5px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg);
+  border-radius: var(--radius-md);
+  background: var(--bg-section);
   color: var(--text);
   font-size: 14px;
   font-family: var(--font-body);
@@ -78,7 +117,7 @@
 .gen-setting-textarea:focus {
   outline: none;
   border-color: var(--blue);
-  box-shadow: 0 0 0 4px var(--ring);
+  box-shadow: var(--glow-input-focus);
 }
 
 .toggle-row {
@@ -120,16 +159,23 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--glow-card);
   overflow: hidden;
+  transition: box-shadow var(--duration-normal) var(--ease-smooth);
+}
+
+.channels-list:hover {
+  box-shadow: var(--glow-card-hover);
 }
 
 .channel-row {
   display: flex;
   align-items: center;
   gap: 18px;
-  padding: 22px 26px;
+  padding: 24px 26px;
   transition: background var(--duration-fast) var(--ease-smooth);
+  position: relative;
+  overflow: hidden;
 }
 
 .channel-row:not(:last-child) {
@@ -138,6 +184,20 @@
 
 .channel-row:hover {
   background: var(--surface-hover);
+}
+
+/* Colored accent bar on left */
+.channel-accent {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  transition: width var(--duration-normal) var(--ease-spring);
+}
+
+.channel-row:hover .channel-accent {
+  width: 4px;
 }
 
 /* Icon */
@@ -153,11 +213,13 @@
   font-size: 22px;
   font-weight: 800;
   flex-shrink: 0;
-  transition: transform var(--duration-normal) var(--ease-spring);
+  transition: transform var(--duration-normal) var(--ease-spring),
+              box-shadow var(--duration-normal) var(--ease-smooth);
 }
 
 .channel-row:hover .channel-icon {
   transform: scale(1.06);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 /* Info */
@@ -168,13 +230,13 @@
 
 .channel-name {
   font-family: var(--font-heading);
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 .channel-desc {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text3);
   margin-top: 2px;
 }
@@ -207,7 +269,7 @@
   box-shadow: 0 0 0 3px var(--ring);
 }
 
-/* ── Toggle ── */
+/* ── Toggle (spring-style) ── */
 .toggle {
   position: relative;
   display: inline-block;
@@ -227,12 +289,14 @@
   height: 30px;
   border-radius: var(--radius-full);
   background: var(--text4);
-  transition: background var(--duration-normal) var(--ease-smooth);
+  transition: background var(--duration-normal) var(--ease-smooth),
+              box-shadow var(--duration-normal) var(--ease-smooth);
   position: relative;
 }
 
 .toggle input:checked + .toggle-track {
   background: var(--green);
+  box-shadow: 0 0 16px rgba(48, 209, 88, 0.35);
 }
 
 .toggle-thumb {
@@ -244,7 +308,7 @@
   border-radius: 50%;
   background: white;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
-  transition: transform var(--duration-normal) var(--ease-smooth);
+  transition: transform var(--duration-normal) var(--ease-spring);
 }
 
 .toggle input:checked + .toggle-track .toggle-thumb {
@@ -297,12 +361,18 @@
   }
 
   .channels-title {
-    font-size: 32px;
+    font-size: 34px;
+  }
+
+  .channels-desc {
+    font-size: 16px;
+    margin-bottom: 32px;
   }
 
   .channel-row {
+    flex-wrap: wrap;
     gap: 14px;
-    padding: 18px 20px;
+    padding: 20px 20px;
   }
 
   .channel-icon {
@@ -313,22 +383,132 @@
   }
 
   .channel-controls {
+    flex-basis: 100%;
     flex-wrap: wrap;
     gap: 8px;
+    padding-left: 58px;
   }
 
   .channel-select {
-    font-size: 11px;
-    padding: 7px 28px 7px 12px;
+    font-size: 12px;
+    padding: 9px 32px 9px 14px;
+    min-height: 44px;
+  }
+
+  .toggle-track {
+    width: 52px;
+    height: 32px;
+  }
+
+  .toggle-thumb {
+    width: 30px;
+    height: 30px;
+  }
+
+  .gen-settings-card {
+    padding: 20px;
+  }
+
+  .gen-setting-textarea {
+    font-size: 16px;
+    min-height: 80px;
+  }
+
+  .save-indicator {
+    top: 72px;
+    right: 20px;
   }
 }
 
 @media (max-width: 480px) {
+  .channels-page {
+    padding: 28px 16px;
+  }
+
   .channels-title {
     font-size: 28px;
   }
 
   .channels-desc {
     font-size: 15px;
+    margin-bottom: 24px;
+  }
+
+  .channel-row {
+    gap: 12px;
+    padding: 16px 16px;
+  }
+
+  .channel-controls {
+    padding-left: 0;
+    gap: 6px;
+  }
+
+  .channel-select {
+    flex: 1;
+    min-width: 0;
+    font-size: 12px;
+    padding: 9px 28px 9px 12px;
+    min-height: 44px;
+  }
+
+  .channel-info {
+    flex: 1;
+  }
+
+  .channel-name {
+    font-size: 15px;
+  }
+
+  .channel-desc {
+    font-size: 12px;
+  }
+
+  .gen-settings-title {
+    font-size: 18px;
+  }
+
+  .gen-settings-card {
+    padding: 16px;
+  }
+
+  .gen-setting-label {
+    font-size: 12px;
+  }
+
+  .save-indicator {
+    top: 64px;
+    right: 16px;
+    font-size: 11px;
+    padding: 6px 14px;
+  }
+}
+
+@media (max-width: 375px) {
+  .channels-page {
+    padding: 24px 12px;
+  }
+
+  .channels-title {
+    font-size: 24px;
+  }
+
+  .channel-row {
+    padding: 14px 12px;
+  }
+
+  .channel-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+
+  .channel-controls {
+    padding-left: 0;
+  }
+
+  .channel-select {
+    font-size: 11px;
+    padding: 8px 24px 8px 10px;
   }
 }

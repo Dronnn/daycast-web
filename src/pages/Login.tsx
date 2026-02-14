@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { setToken, setUsername } from "@/api/client";
+import { motion } from "framer-motion";
 import "./Login.css";
 
 interface AuthResponse {
@@ -47,13 +48,24 @@ export default function Login() {
 
   return (
     <div className="login-page">
-      <div className="login-card">
+      <div className="login-mesh" />
+      <motion.div
+        className="login-card"
+        initial={{ opacity: 0, scale: 0.94, y: 24 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 260, damping: 20 }}
+      >
         <div className="login-logo">
-          <div className="login-logo-icon">
+          <motion.div
+            className="login-logo-icon"
+            whileHover={{ scale: 1.1, rotate: -5 }}
+            whileTap={{ scale: 0.92 }}
+            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+          >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
             </svg>
-          </div>
+          </motion.div>
           <span className="login-logo-text">DayCast</span>
         </div>
 
@@ -72,7 +84,16 @@ export default function Login() {
           </button>
         </div>
 
-        {error && <div className="login-error">{error}</div>}
+        {error && (
+          <motion.div
+            className="login-error"
+            initial={{ opacity: 0, y: -8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
+            {error}
+          </motion.div>
+        )}
 
         <form onSubmit={(e) => { e.preventDefault(); handleSubmit(isLoginMode ? "login" : "register"); }}>
           <input
@@ -94,15 +115,18 @@ export default function Login() {
             autoComplete="current-password"
             minLength={6}
           />
-          <button
+          <motion.button
             type="submit"
             className="login-btn login-btn--primary"
             disabled={loading || username.length < 3 || password.length < 6}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 400, damping: 15 }}
           >
             {isLoginMode ? "Log in" : "Register"}
-          </button>
+          </motion.button>
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 }

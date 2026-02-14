@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api, publishPost, unpublishPost, getPublishStatus } from "../api/client";
 import type { DayResponse, InputItem } from "../types";
+import { motion, AnimatePresence } from "framer-motion";
 import "./HistoryDetail.css";
 
 function formatTime(iso: string): string {
@@ -30,7 +31,6 @@ function getDomain(url: string): string {
 }
 
 function copyText(text: string) {
-  // Fallback for non-HTTPS (navigator.clipboard requires secure context)
   if (navigator.clipboard && window.isSecureContext) {
     navigator.clipboard.writeText(text);
   } else {
@@ -77,34 +77,70 @@ function EditHistory({ item }: { item: InputItem }) {
 
   return (
     <div className="hd-edit-history">
-      <button
+      <motion.button
         className="hd-edit-toggle"
         onClick={() => setExpanded(!expanded)}
+        whileTap={{ scale: 0.95 }}
+        transition={{ type: "spring", stiffness: 400, damping: 15 }}
       >
         {expanded ? "Hide" : "Show"} edit history ({edits.length}{" "}
         {edits.length === 1 ? "edit" : "edits"})
-      </button>
-      {expanded && (
-        <div className="hd-edit-list">
-          {edits.map((edit) => (
-            <div key={edit.id} className="hd-edit-entry">
-              <span className="hd-edit-time">
-                {formatTime(edit.edited_at)}
-              </span>
-              <div className="diff-display">
-                {computeWordDiff(edit.old_content, item.content).map((part, idx) => (
-                  <span key={idx} className={part.type === 'removed' ? 'diff-removed' : part.type === 'added' ? 'diff-added' : ''}>
-                    {part.text}
-                  </span>
-                ))}
+      </motion.button>
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            className="hd-edit-list"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          >
+            {edits.map((edit) => (
+              <div key={edit.id} className="hd-edit-entry">
+                <span className="hd-edit-time">
+                  {formatTime(edit.edited_at)}
+                </span>
+                <div className="diff-display">
+                  {computeWordDiff(edit.old_content, item.content).map((part, idx) => (
+                    <span key={idx} className={part.type === 'removed' ? 'diff-removed' : part.type === 'added' ? 'diff-added' : ''}>
+                      {part.text}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+
+const itemVariants = {
+  initial: { opacity: 0, y: 24 },
+  whileInView: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring" as const,
+      stiffness: 260,
+      damping: 20,
+    },
+  },
+};
+
+const genVariants = {
+  initial: { opacity: 0, y: 20 },
+  whileInView: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring" as const,
+      stiffness: 200,
+      damping: 20,
+    },
+  },
+};
 
 export default function HistoryDetail() {
   const { date } = useParams<{ date: string }>();
@@ -166,7 +202,7 @@ export default function HistoryDetail() {
   if (loading) {
     return (
       <div className="hd-page">
-        <p style={{ textAlign: "center", color: "var(--text3)", marginTop: 80 }}>Loading...</p>
+        <p className="hd-empty" style={{ marginTop: 80 }}>Loading...</p>
       </div>
     );
   }
@@ -174,36 +210,60 @@ export default function HistoryDetail() {
   if (!day) {
     return (
       <div className="hd-page">
-        <p style={{ textAlign: "center", color: "var(--text3)", marginTop: 80 }}>Day not found.</p>
+        <p className="hd-empty" style={{ marginTop: 80 }}>Day not found.</p>
       </div>
     );
   }
 
   return (
     <div className="hd-page">
-      <button className="hd-back" onClick={() => navigate("/history")}>
+      <motion.button
+        className="hd-back"
+        onClick={() => navigate("/history")}
+        whileHover={{ x: -4 }}
+        whileTap={{ scale: 0.95 }}
+        transition={{ type: "spring", stiffness: 400, damping: 15 }}
+      >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15 18 9 12 15 6" />
         </svg>
         History
-      </button>
+      </motion.button>
 
-      <h1 className="hd-title">{formatDateHeading(day.date)}</h1>
+      <motion.h1
+        className="hd-title"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 200, damping: 20 }}
+      >
+        {formatDateHeading(day.date)}
+      </motion.h1>
 
       {/* Input items section */}
       <section className="hd-section">
-        <h2 className="hd-section-title">
+        <motion.h2
+          className="hd-section-title"
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.1 }}
+        >
           Messages
           <span className="hd-count">{day.input_items.length}</span>
-        </h2>
+        </motion.h2>
         {day.input_items.length === 0 ? (
           <p className="hd-empty">No messages this day.</p>
         ) : (
           <div className="hd-items">
-            {day.input_items.map((item) => (
-              <div
+            {day.input_items.map((item, i) => (
+              <motion.div
                 key={item.id}
                 className={`hd-item ${item.cleared ? "hd-item--cleared" : ""}`}
+                variants={itemVariants}
+                initial="initial"
+                whileInView="whileInView"
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ delay: i * 0.03 }}
+                whileHover={{ scale: 1.005 }}
               >
                 {item.cleared && <span className="hd-cleared-badge">Deleted</span>}
                 {(item.edits?.length ?? 0) > 0 && !item.cleared && (
@@ -240,7 +300,7 @@ export default function HistoryDetail() {
                 )}
                 <span className="hd-item-time">{formatTime(item.created_at)}</span>
                 <EditHistory item={item} />
-              </div>
+              </motion.div>
             ))}
           </div>
         )}
@@ -248,15 +308,28 @@ export default function HistoryDetail() {
 
       {/* Generations section */}
       <section className="hd-section">
-        <h2 className="hd-section-title">
+        <motion.h2
+          className="hd-section-title"
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.15 }}
+        >
           Generations
           <span className="hd-count">{day.generations.length}</span>
-        </h2>
+        </motion.h2>
         {day.generations.length === 0 ? (
           <p className="hd-empty">No generations this day.</p>
         ) : (
           day.generations.map((gen, gi) => (
-            <div key={gen.id} className="hd-gen">
+            <motion.div
+              key={gen.id}
+              className="hd-gen"
+              variants={genVariants}
+              initial="initial"
+              whileInView="whileInView"
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ delay: gi * 0.06 }}
+            >
               <div className="hd-gen-header">
                 Generation #{gi + 1}
                 <span className="hd-gen-time">{formatTime(gen.created_at)}</span>
@@ -269,28 +342,42 @@ export default function HistoryDetail() {
                       <span className="hd-result-meta">{r.style} / {r.language}</span>
                     </div>
                     <p className="hd-result-text">{r.text}</p>
-                    <button
-                      className="hd-copy-btn"
-                      onClick={() => handleCopy(r.text, r.id)}
-                    >
-                      {copiedId === r.id ? "Copied!" : "Copy"}
-                    </button>
-                    {publishStatus[r.id] ? (
-                      <>
-                        <span className="hd-published-badge">Published</span>
-                        <button className="hd-unpublish-btn" onClick={() => handleUnpublish(r.id)}>
-                          Unpublish
-                        </button>
-                      </>
-                    ) : (
-                      <button className="hd-publish-btn" onClick={() => handlePublish(r.id)}>
-                        Publish
-                      </button>
-                    )}
+                    <div className="hd-result-actions">
+                      <motion.button
+                        className="hd-copy-btn"
+                        onClick={() => handleCopy(r.text, r.id)}
+                        whileTap={{ scale: 0.93 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                      >
+                        {copiedId === r.id ? "Copied!" : "Copy"}
+                      </motion.button>
+                      {publishStatus[r.id] ? (
+                        <>
+                          <span className="hd-published-badge">Published</span>
+                          <motion.button
+                            className="hd-unpublish-btn"
+                            onClick={() => handleUnpublish(r.id)}
+                            whileTap={{ scale: 0.93 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                          >
+                            Unpublish
+                          </motion.button>
+                        </>
+                      ) : (
+                        <motion.button
+                          className="hd-publish-btn"
+                          onClick={() => handlePublish(r.id)}
+                          whileTap={{ scale: 0.93 }}
+                          transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                        >
+                          Publish
+                        </motion.button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
+            </motion.div>
           ))
         )}
       </section>

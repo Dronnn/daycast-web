@@ -1,5 +1,6 @@
 /* ═══════════════════════════════════════════
-   Layout — Frosted glass navigation bar
+   Layout — Glassmorphism navigation + transitions
+   Design V2
    ═══════════════════════════════════════════ */
 
 .layout {
@@ -9,6 +10,29 @@
   flex-direction: column;
   overflow: hidden;
   background: var(--bg);
+}
+
+/* ── Animated mesh background ── */
+.layout::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 600px 600px at 20% 10%, rgba(0, 113, 227, 0.05) 0%, transparent 70%),
+    radial-gradient(ellipse 500px 500px at 80% 20%, rgba(191, 90, 242, 0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 400px 400px at 50% 80%, rgba(255, 159, 10, 0.025) 0%, transparent 70%);
+  animation: mesh-shift 20s ease-in-out infinite, mesh-rotate 30s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .layout::before {
+    background:
+      radial-gradient(ellipse 600px 600px at 20% 10%, rgba(10, 132, 255, 0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 500px 500px at 80% 20%, rgba(191, 90, 242, 0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 400px 400px at 50% 80%, rgba(255, 159, 10, 0.04) 0%, transparent 70%);
+  }
 }
 
 /* ── Topbar ── */
@@ -25,7 +49,19 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  transition: background var(--duration-normal) var(--ease-smooth);
+  transition: background var(--duration-normal) var(--ease-smooth),
+              box-shadow var(--duration-normal) var(--ease-smooth);
+}
+
+.topbar--scrolled {
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  .topbar--scrolled {
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+    background: rgba(20, 20, 20, 0.88);
+  }
 }
 
 /* ── Logo ── */
@@ -147,7 +183,13 @@
   flex: 1;
   overflow-y: auto;
   min-height: 0;
-  background: var(--gradient-mesh);
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Page wrapper for transitions ── */
+.page-wrapper {
+  min-height: 100%;
 }
 
 /* ── Responsive ── */
@@ -178,6 +220,11 @@
 }
 
 @media (max-width: 480px) {
+  .topbar {
+    height: 52px;
+    padding: 0 12px;
+  }
+
   .segment {
     padding: 6px 10px;
     font-size: 11px;
@@ -185,5 +232,41 @@
 
   .segmented-control {
     padding: 2px;
+    max-width: calc(100vw - 100px);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .segmented-control::-webkit-scrollbar {
+    display: none;
+  }
+
+  .topbar-right {
+    gap: 8px;
+  }
+
+  .topbar-logout {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (max-width: 375px) {
+  .topbar {
+    height: 48px;
+    padding: 0 10px;
+  }
+
+  .segment {
+    padding: 5px 8px;
+    font-size: 10px;
+    white-space: nowrap;
+  }
+
+  .logo-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
   }
 }
